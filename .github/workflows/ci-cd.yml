@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: out
+          path: ${{ env.BUILD_PATH }}
 
   deploy:
     needs: build
@@ -62,7 +62,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-files
-          path: out
+          path: ${{ env.BUILD_PATH }}
 
       - name: Configure AWS CLI
         uses: aws-actions/configure-aws-credentials@v2
@@ -80,7 +80,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
-          SOURCE_DIR: dist
+          SOURCE_DIR: ${{ env.BUILD_PATH }}
 #
 #      - name: Invalidate CloudFront cache
 #        if: success()
