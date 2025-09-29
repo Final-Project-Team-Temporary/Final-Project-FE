@@ -10,6 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Decode and export env vars
+        run: |
+          echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r'> .env
+
+          # 모든 환경변수를 GitHub Actions 환경변수로 export
+          sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env \
+          | while IFS='=' read -r key value; do
+          if [[ -n "$key" ]]; then
+            echo "$key=$value" >> "$GITHUB_ENV"
+          fi
+          done
       - name: Checkout source
         uses: actions/checkout@v3
 #
