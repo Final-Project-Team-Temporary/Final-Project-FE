@@ -20,28 +20,16 @@ jobs:
         run: |
           echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r' > .env
 
-          # 주석과 빈 라인 제거 후 처리
           sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env > .env.filtered
 
-          echo "=== Original .env file ==="
-          cat .env
-          echo "======================="
-          echo "=== Filtered .env file ==="
-          cat .env.filtered
-          echo "======================="
-          
           # 모든 환경변수를 GitHub Actions 환경변수로 export
-          while IFS='=' read -r key value; do
+          # 마지막 줄에 개행이 없어도 처리 가능
+          while IFS='=' read -r key value || [ -n "$key" ]; do
             if [[ -n "$key" ]]; then
               echo "$key=$value" >> "$GITHUB_ENV"
               echo "Processing: key='$key' value='$value'"
             fi
           done < .env.filtered
-
-      - name: logging
-        run: |
-          echo "build path: ${{ env.NEXT_BUILD_PATH }}"
-          echo "aws access key: ${{ env.AWS_ACCESS_KEY_ID }}"
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -73,13 +61,14 @@ jobs:
         run: |
           echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r' > .env
 
-          # 주석과 빈 라인 제거 후 처리
           sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env > .env.filtered
 
           # 모든 환경변수를 GitHub Actions 환경변수로 export
-          while IFS='=' read -r key value; do
+          # 마지막 줄에 개행이 없어도 처리 가능
+          while IFS='=' read -r key value || [ -n "$key" ]; do
             if [[ -n "$key" ]]; then
               echo "$key=$value" >> "$GITHUB_ENV"
+              echo "Processing: key='$key' value='$value'"
             fi
           done < .env.filtered
 
