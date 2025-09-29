@@ -23,10 +23,18 @@ jobs:
           # 주석과 빈 라인 제거 후 처리
           sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env > .env.filtered
 
+          echo "=== Original .env file ==="
+          cat .env
+          echo "======================="
+          echo "=== Filtered .env file ==="
+          cat .env.filtered
+          echo "======================="
+          
           # 모든 환경변수를 GitHub Actions 환경변수로 export
           while IFS='=' read -r key value; do
             if [[ -n "$key" ]]; then
               echo "$key=$value" >> "$GITHUB_ENV"
+              echo "Processing: key='$key' value='$value'"
             fi
           done < .env.filtered
 
