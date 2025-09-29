@@ -18,15 +18,17 @@ jobs:
 
       - name: Decode and export env vars
         run: |
-          echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r'> .env
+          echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r' > .env
+
+          # 주석과 빈 라인 제거 후 처리
+          sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env > .env.filtered
 
           # 모든 환경변수를 GitHub Actions 환경변수로 export
-          sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env \
-          | while IFS='=' read -r key value; do
-          if [[ -n "$key" ]]; then
-            echo "$key=$value" >> "$GITHUB_ENV"
-          fi
-          done
+          while IFS='=' read -r key value; do
+            if [[ -n "$key" ]]; then
+              echo "$key=$value" >> "$GITHUB_ENV"
+            fi
+          done < .env.filtered
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -56,15 +58,18 @@ jobs:
     steps:
       - name: Decode and export env vars
         run: |
-          echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r'> .env
+          echo "${{ secrets.APP_ENV_B64 }}" | base64 --decode | tr -d '\r' > .env
+
+          # 주석과 빈 라인 제거 후 처리
+          sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env > .env.filtered
 
           # 모든 환경변수를 GitHub Actions 환경변수로 export
-          sed '/^[[:space:]]*#/d; s/[[:space:]]*#.*$//; /^[[:space:]]*$/d' .env \
-          | while IFS='=' read -r key value; do
-          if [[ -n "$key" ]]; then
-            echo "$key=$value" >> "$GITHUB_ENV"
-          fi
-          done
+          while IFS='=' read -r key value; do
+            if [[ -n "$key" ]]; then
+              echo "$key=$value" >> "$GITHUB_ENV"
+            fi
+          done < .env.filtered
+      
 
       - name: Checkout source
         uses: actions/checkout@v3
