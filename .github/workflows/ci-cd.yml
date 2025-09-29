@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: dist
+          path: out
 
   deploy:
     needs: build
@@ -62,7 +62,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-files
-          path: dist
+          path: out
 
       - name: Configure AWS CLI
         uses: aws-actions/configure-aws-credentials@v2
