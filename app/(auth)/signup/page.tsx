@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,11 +13,8 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Eye, EyeOff, ArrowLeft, Check, User, Target, BookOpen } from "lucide-react"
 
-interface SignupPageProps {
-  onNavigate: (page: string) => void
-}
-
-export default function SignupPage({ onNavigate }: SignupPageProps) {
+export default function SignupPage() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -64,7 +62,7 @@ export default function SignupPage({ onNavigate }: SignupPageProps) {
 
   const handleKakaoSignup = () => {
     console.log("카카오 회원가입 시도")
-    onNavigate("dashboard")
+    router.push("/dashboard")
   }
 
   const handleNextStep = () => {
@@ -82,7 +80,7 @@ export default function SignupPage({ onNavigate }: SignupPageProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log("회원가입 완료:", formData)
-    onNavigate("dashboard")
+    router.push("/dashboard")
   }
 
   const renderStepContent = () => {
@@ -373,7 +371,7 @@ export default function SignupPage({ onNavigate }: SignupPageProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <button
-            onClick={() => onNavigate("dashboard")}
+            onClick={() => router.push("/")}
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -431,7 +429,7 @@ export default function SignupPage({ onNavigate }: SignupPageProps) {
             {currentStep === 1 && (
               <div className="text-center mt-6">
                 <span className="text-gray-600">이미 계정이 있으신가요? </span>
-                <button onClick={() => onNavigate("login")} className="text-blue-600 hover:text-blue-800 font-medium">
+                <button onClick={() => router.push("/login")} className="text-blue-600 hover:text-blue-800 font-medium">
                   로그인
                 </button>
               </div>

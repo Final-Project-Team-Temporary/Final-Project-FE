@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
+import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/contexts/AuthContext'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: 'EconoEasy - 금융 투자 학습 플랫폼',
+  description: '체계적인 금융 투자 학습과 맞춤형 콘텐츠로 투자 전문가가 되어보세요',
+  generator: 'EconoEasy',
 }
 
 export default function RootLayout({
@@ -13,8 +15,19 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="ko" suppressHydrationWarning>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

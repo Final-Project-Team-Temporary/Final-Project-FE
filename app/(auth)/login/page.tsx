@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { TrendingUp, Eye, EyeOff, ArrowLeft } from "lucide-react"
 
-interface LoginPageProps {
-  onNavigate: (page: string) => void
-}
-
-export default function LoginPage({ onNavigate }: LoginPageProps) {
+export default function LoginPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -33,13 +31,13 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     e.preventDefault()
     // 로그인 로직 구현
     console.log("로그인 시도:", formData)
-    onNavigate("dashboard")
+    router.push("/dashboard")
   }
 
   const handleKakaoLogin = () => {
-    // 카카오 로그인 로직 구현
-    console.log("카카오 로그인 시도")
-    onNavigate("dashboard")
+    // 카카오 OAuth URL로 리다이렉트
+    const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI || '')}&response_type=code`
+    window.location.href = kakaoAuthUrl
   }
 
   return (
@@ -48,7 +46,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <button
-            onClick={() => onNavigate("dashboard")}
+            onClick={() => router.push("/")}
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -149,7 +147,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
 
             <div className="text-center">
               <span className="text-gray-600">아직 계정이 없으신가요? </span>
-              <button onClick={() => onNavigate("signup")} className="text-blue-600 hover:text-blue-800 font-medium">
+              <button onClick={() => router.push("/signup")} className="text-blue-600 hover:text-blue-800 font-medium">
                 회원가입
               </button>
             </div>
