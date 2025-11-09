@@ -154,8 +154,8 @@ export interface Term {
 }
 
 export interface SaveTermRequest {
-  term: string
-  definition: string
+  termName: string
+  termDescription: string
 }
 
 export interface TermsResponse {
