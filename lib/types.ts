@@ -102,7 +102,7 @@ export interface UserKeywordsResponse {
 }
 
 export interface AddKeywordRequest {
-  keyword: string
+  keywords: string[]
 }
 
 export interface UpdateKeywordsRequest {
@@ -143,4 +143,33 @@ export interface SignupData {
 export interface SelectOption {
   value: string
   label: string
+}
+
+// 용어 관련 타입
+export interface Term {
+  termId: number
+  term: string
+  definition: string
+  createdAt: string
+}
+
+export interface SaveTermRequest {
+  term: string
+  definition: string
+}
+
+export interface TermsResponse {
+  code: string
+  message: string
+  success: boolean
+  data: {
+    terms: Term[]
+  }
+}
+
+export interface SaveTermResponse {
+  code: string
+  message: string
+  success: boolean
+  data: Term
 }

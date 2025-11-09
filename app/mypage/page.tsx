@@ -175,7 +175,7 @@ export default function MyPage() {
 
     setIsAddingKeyword(true)
     try {
-      const success = await addKeyword(newKeyword.trim())
+      const success = await addKeyword([newKeyword.trim()])
       if (success) {
         // 백엔드에서 최신 키워드 목록 다시 불러오기
         await loadUserKeywords()
@@ -246,7 +246,7 @@ export default function MyPage() {
 
     setIsAddingKeyword(true)
     try {
-      const success = await addKeyword(keyword)
+      const success = await addKeyword([keyword])
       if (success) {
         // 백엔드에서 최신 키워드 목록 다시 불러오기
         await loadUserKeywords()

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,10 +16,13 @@ import {
   Share2,
   FileText,
   ExternalLink,
+  Sparkles,
 } from "lucide-react"
 import { ArticleOriginal, ArticleOriginalResponse } from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
 import apiClient from "@/lib/axios"
+import TermExplanationModal from "@/components/dictionary/TermExplanationModal"
+import { getDummyTermExplanation } from "@/services/terms"
 
 export default function ArticleOriginalPage() {
   const router = useRouter()
@@ -31,6 +34,14 @@ export default function ArticleOriginalPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
+
+  // 텍스트 선택 관련 상태
+  const [selectedText, setSelectedText] = useState("")
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
+  const [showModal, setShowModal] = useState(false)
+  const [termExplanation, setTermExplanation] = useState("")
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = () => {
     logout()
@@ -70,6 +81,58 @@ export default function ArticleOriginalPage() {
       day: "numeric",
     })
   }
+
+  // 텍스트 선택 핸들러
+  const handleTextSelection = () => {
+    const selection = window.getSelection()
+    const text = selection?.toString().trim()
+
+    if (text && text.length > 0) {
+      setSelectedText(text)
+
+      // 선택 영역의 위치 계산
+      const range = selection?.getRangeAt(0)
+      const rect = range?.getBoundingClientRect()
+
+      if (rect) {
+        setPopupPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10,
+        })
+        setShowPopup(true)
+      }
+    } else {
+      setShowPopup(false)
+    }
+  }
+
+  // 설명 보기 핸들러
+  const handleShowExplanation = () => {
+    const explanation = getDummyTermExplanation(selectedText)
+    setTermExplanation(explanation)
+    setShowModal(true)
+    setShowPopup(false)
+  }
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setSelectedText("")
+    setTermExplanation("")
+  }
+
+  // 클릭 시 팝업 닫기
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest(".text-selection-popup") && !target.closest(".article-content")) {
+        setShowPopup(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -208,7 +271,11 @@ export default function ArticleOriginalPage() {
             <Card>
               <CardContent className="p-8">
                 <div className="prose prose-lg max-w-none">
-                  <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  <div
+                    ref={contentRef}
+                    className="article-content text-gray-800 leading-relaxed whitespace-pre-wrap select-text"
+                    onMouseUp={handleTextSelection}
+                  >
                     {article.content}
                   </div>
                 </div>
@@ -256,6 +323,34 @@ export default function ArticleOriginalPage() {
           </div>
         )}
       </main>
+
+      {/* 텍스트 선택 팝업 */}
+      {showPopup && (
+        <div
+          className="text-selection-popup fixed z-50 transform -translate-x-1/2 -translate-y-full"
+          style={{
+            left: `${popupPosition.x}px`,
+            top: `${popupPosition.y}px`,
+          }}
+        >
+          <Button
+            onClick={handleShowExplanation}
+            size="sm"
+            className="bg-blue-900 hover:bg-blue-800 shadow-lg"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            AI 설명 보기
+          </Button>
+        </div>
+      )}
+
+      {/* 용어 설명 모달 */}
+      <TermExplanationModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        selectedTerm={selectedText}
+        explanation={termExplanation}
+      />
     </div>
   )
 }

@@ -51,12 +51,12 @@ export const fetchUserKeywordsWithId = async (): Promise<UserKeyword[]> => {
 
 /**
  * 키워드 추가
- * @param keyword - 추가할 키워드
+ * @param keywords - 추가할 키워드
  * @returns 성공 여부
  */
-export const addKeyword = async (keyword: string): Promise<boolean> => {
+export const addKeyword = async (keywords: string[]): Promise<boolean> => {
   try {
-    const requestBody: AddKeywordRequest = { keyword }
+    const requestBody: AddKeywordRequest = { keywords }
     const { data } = await apiClient.post<ApiResponse<null>>("/api/users/keywords", requestBody)
 
     return data.success
