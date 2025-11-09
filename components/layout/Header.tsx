@@ -40,22 +40,22 @@ export default function Header() {
               대시보드
             </button>
             <button
-              onClick={() => router.push("/learning")}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive("/learning")}`}
+              onClick={() => router.push("/articles")}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${pathname.startsWith("/articles") ? "bg-blue-100 text-blue-900" : "text-gray-600 hover:text-blue-900"}`}
             >
-              학습센터
+              기사
             </button>
             <button
-              onClick={() => router.push("/simulation")}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive("/simulation")}`}
+              onClick={() => router.push("/dictionary")}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive("/dictionary")}`}
             >
-              모의투자
+              용어사전
             </button>
             <button
-              onClick={() => router.push("/portfolio")}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive("/portfolio")}`}
+              onClick={() => router.push("/quiz")}
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive("/quiz")}`}
             >
-              포트폴리오
+              퀴즈
             </button>
           </nav>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useState} from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,21 +21,34 @@ import {
   Edit,
   Save,
   X,
+  Plus,
+  Loader2,
+  Tag,
+  Sparkles,
 } from "lucide-react"
+import {
+  addKeyword,
+  deleteKeyword,
+  fetchUserKeywords,
+  fetchSuggestedKeywords,
+} from "@/services/keywords"
+import { useToast } from "@/hooks/use-toast"
+import apiClient from "@/lib/axios"
 
 interface UserProfile {
-    name: string,
-    email: string,
-    phone: string,
-    age: string,
-    investmentExperience: string,
-    riskTolerance: string,
-    investmentGoals: string[],
-    interests: string[],
+  name: string
+  email: string
+  phone: string
+  age: string
+  investmentExperience: string
+  riskTolerance: string
+  investmentGoals: string[]
+  interests: string[]
 }
 
 export default function MyPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [selectedTab, setSelectedTab] = useState("profile")
 
@@ -50,6 +63,12 @@ export default function MyPage() {
     investmentGoals: ["장기 자산 증식", "은퇴 자금 마련"],
     interests: ["ETF", "주식", "부동산"],
   })
+
+  // 키워드 관리 상태
+  const [newKeyword, setNewKeyword] = useState("")
+  const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([])
+  const [isLoadingKeywords, setIsLoadingKeywords] = useState(false)
+  const [isAddingKeyword, setIsAddingKeyword] = useState(false)
 
   const learningStats = {
     articlesRead: 28,
@@ -68,28 +87,183 @@ export default function MyPage() {
     { title: "독서왕", description: "20개 기사 완독", date: "2024-02-01" },
   ]
 
-    useEffect(() => {
-        fetchProfile()
-    }, [])
+  useEffect(() => {
+    fetchProfile()
+    loadUserKeywords()
+    loadSuggestedKeywords()
+  }, [])
 
   const fetchProfile = async () => {
+    try {
+      const { data } = await apiClient.get("/api/users/profile")
+      console.log("User profile:", data)
+      // TODO: 백엔드 응답에 따라 userProfile 상태 업데이트
+      // if (data.success && data.data) {
+      //   setUserProfile(data.data)
+      // }
+    } catch (error) {
+      console.error("Error fetching user profile:", error)
+      toast({
+        title: "프로필 불러오기 실패",
+        description: "사용자 프로필을 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
+  }
 
-      // 현재 로그인 중인 사용자 정보를 넘김
-      const authToken = localStorage.getItem("authToken");
+  // 사용자 키워드 로드
+  const loadUserKeywords = async () => {
+    setIsLoadingKeywords(true)
+    try {
+      const keywords = await fetchUserKeywords()
+      setUserProfile((prev) => ({
+        ...prev,
+        interests: keywords,
+      }))
+    } catch (error) {
+      console.error("Failed to load user keywords:", error)
+      toast({
+        title: "키워드 불러오기 실패",
+        description: "키워드 목록을 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingKeywords(false)
+    }
+  }
 
-      console.log(authToken)
+  // 추천 키워드 로드
+  const loadSuggestedKeywords = async () => {
+    try {
+      const keywords = await fetchSuggestedKeywords()
+      setSuggestedKeywords(keywords)
+    } catch (error) {
+      console.error("Failed to load suggested keywords:", error)
+    }
+  }
 
-      const response = await fetch("http://localhost:8080/api/users/profile", {
-          method: "GET",
-          headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authToken}`,
-          }
-      });
+  // 키워드 추가
+  const handleAddKeyword = async () => {
+    if (!newKeyword.trim()) {
+      toast({
+        title: "입력 오류",
+        description: "키워드를 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
 
-      const data = response.json();
+    if (userProfile.interests.includes(newKeyword.trim())) {
+      toast({
+        title: "중복 키워드",
+        description: "이미 추가된 키워드입니다.",
+        variant: "destructive",
+      })
+      return
+    }
 
-      console.log(data)
+    if (userProfile.interests.length >= 10) {
+      toast({
+        title: "키워드 제한",
+        description: "키워드는 최대 10개까지 추가할 수 있습니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAddingKeyword(true)
+    try {
+      const success = await addKeyword(newKeyword.trim())
+      if (success) {
+        // 백엔드에서 최신 키워드 목록 다시 불러오기
+        await loadUserKeywords()
+        setNewKeyword("")
+        toast({
+          title: "키워드 추가 완료",
+          description: `"${newKeyword.trim()}" 키워드가 추가되었습니다.`,
+        })
+      } else {
+        throw new Error("키워드 추가 실패")
+      }
+    } catch (error) {
+      toast({
+        title: "키워드 추가 실패",
+        description: "키워드 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAddingKeyword(false)
+    }
+  }
+
+  // 키워드 삭제
+  const handleDeleteKeyword = async (keyword: string) => {
+    setIsLoadingKeywords(true)
+    try {
+      const success = await deleteKeyword(keyword)
+      if (success) {
+        // 백엔드에서 최신 키워드 목록 다시 불러오기
+        await loadUserKeywords()
+        toast({
+          title: "키워드 삭제 완료",
+          description: `"${keyword}" 키워드가 삭제되었습니다.`,
+        })
+      } else {
+        throw new Error("키워드 삭제 실패")
+      }
+    } catch (error) {
+      toast({
+        title: "키워드 삭제 실패",
+        description: "키워드 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingKeywords(false)
+    }
+  }
+
+  // 추천 키워드에서 키워드 추가
+  const handleAddSuggestedKeyword = async (keyword: string) => {
+    if (userProfile.interests.includes(keyword)) {
+      toast({
+        title: "중복 키워드",
+        description: "이미 추가된 키워드입니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (userProfile.interests.length >= 10) {
+      toast({
+        title: "키워드 제한",
+        description: "키워드는 최대 10개까지 추가할 수 있습니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAddingKeyword(true)
+    try {
+      const success = await addKeyword(keyword)
+      if (success) {
+        // 백엔드에서 최신 키워드 목록 다시 불러오기
+        await loadUserKeywords()
+        toast({
+          title: "키워드 추가 완료",
+          description: `"${keyword}" 키워드가 추가되었습니다.`,
+        })
+      } else {
+        throw new Error("키워드 추가 실패")
+      }
+    } catch (error) {
+      toast({
+        title: "키워드 추가 실패",
+        description: "키워드 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAddingKeyword(false)
+    }
   }
 
   return (
@@ -137,7 +311,9 @@ export default function MyPage() {
                   <button
                     onClick={() => setSelectedTab("achievements")}
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      selectedTab === "achievements" ? "bg-blue-100 text-blue-900" : "hover:bg-gray-100"
+                      selectedTab === "achievements"
+                        ? "bg-blue-100 text-blue-900"
+                        : "hover:bg-gray-100"
                     }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -168,11 +344,7 @@ export default function MyPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>프로필 정보</CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditing(!isEditing)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
                       {isEditing ? (
                         <>
                           <X className="w-4 h-4 mr-2" />
@@ -268,15 +440,100 @@ export default function MyPage() {
 
                   <Separator />
 
-                  {/* Interests */}
+                  {/* Interests - Keyword Management */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">관심 분야</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {userProfile.interests.map((interest, index) => (
-                        <Badge key={index} variant="outline">
-                          {interest}
-                        </Badge>
-                      ))}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <Tag className="w-5 h-5 mr-2 text-blue-600" />
+                        관심 키워드
+                      </h3>
+                      <Badge variant="secondary">{userProfile.interests.length}/10</Badge>
+                    </div>
+
+                    {/* Add New Keyword */}
+                    <div className="mb-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="새 키워드 입력..."
+                          value={newKeyword}
+                          onChange={(e) => setNewKeyword(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddKeyword()
+                            }
+                          }}
+                          disabled={isAddingKeyword || userProfile.interests.length >= 10}
+                        />
+                        <Button
+                          onClick={handleAddKeyword}
+                          disabled={isAddingKeyword || userProfile.interests.length >= 10}
+                          size="sm"
+                        >
+                          {isAddingKeyword ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              추가 중
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-2" />
+                              추가
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Current Keywords */}
+                    <div className="mb-6">
+                      <Label className="text-sm text-gray-600 mb-2 block">내 키워드</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {userProfile.interests.length === 0 ? (
+                          <div className="text-sm text-gray-500 py-4">
+                            등록된 키워드가 없습니다. 관심 있는 키워드를 추가해보세요.
+                          </div>
+                        ) : (
+                          userProfile.interests.map((interest, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="pr-1 py-1 hover:bg-gray-100 transition-colors"
+                            >
+                              {interest}
+                              <button
+                                onClick={() => handleDeleteKeyword(interest)}
+                                className="ml-2 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                disabled={isLoadingKeywords}
+                              >
+                                <X className="w-3 h-3 text-gray-500 hover:text-red-600" />
+                              </button>
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Suggested Keywords */}
+                    <div>
+                      <Label className="text-sm text-gray-600 mb-2 flex items-center">
+                        <Sparkles className="w-4 h-4 mr-1 text-yellow-500" />
+                        추천 키워드
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedKeywords
+                          .filter((keyword) => !userProfile.interests.includes(keyword))
+                          .map((keyword, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                              onClick={() => handleAddSuggestedKeyword(keyword)}
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              {keyword}
+                            </Badge>
+                          ))}
+                      </div>
                     </div>
                   </div>
 
@@ -305,7 +562,9 @@ export default function MyPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{learningStats.articlesRead}</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {learningStats.articlesRead}
+                        </div>
                         <div className="text-sm text-gray-600">완독한 기사</div>
                       </div>
                       <div className="text-center">
@@ -315,11 +574,15 @@ export default function MyPage() {
                         <div className="text-sm text-gray-600">완료한 강의</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-orange-600">{learningStats.quizScore}%</div>
+                        <div className="text-2xl font-bold text-orange-600">
+                          {learningStats.quizScore}%
+                        </div>
                         <div className="text-sm text-gray-600">평균 퀴즈 점수</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-600">{learningStats.streak}일</div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {learningStats.streak}일
+                        </div>
                         <div className="text-sm text-gray-600">연속 학습일</div>
                       </div>
                     </div>
@@ -339,7 +602,9 @@ export default function MyPage() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span>포인트</span>
-                        <span className="font-semibold">{learningStats.points.toLocaleString()}P</span>
+                        <span className="font-semibold">
+                          {learningStats.points.toLocaleString()}P
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span>전체 랭킹</span>
@@ -363,7 +628,10 @@ export default function MyPage() {
                           <span>3/5</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: "60%" }}></div>
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: "60%" }}
+                          ></div>
                         </div>
                       </div>
                       <div>
@@ -372,7 +640,10 @@ export default function MyPage() {
                           <span>1/2</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-600 h-2 rounded-full" style={{ width: "50%" }}></div>
+                          <div
+                            className="bg-green-600 h-2 rounded-full"
+                            style={{ width: "50%" }}
+                          ></div>
                         </div>
                       </div>
                       <div>
@@ -381,7 +652,10 @@ export default function MyPage() {
                           <span>2/3</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-orange-600 h-2 rounded-full" style={{ width: "67%" }}></div>
+                          <div
+                            className="bg-orange-600 h-2 rounded-full"
+                            style={{ width: "67%" }}
+                          ></div>
                         </div>
                       </div>
                     </CardContent>
@@ -398,7 +672,10 @@ export default function MyPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {achievements.map((achievement, index) => (
-                      <div key={index} className="flex items-center space-x-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center space-x-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
+                      >
                         <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
                           <Trophy className="w-6 h-6 text-white" />
                         </div>
@@ -469,7 +746,10 @@ export default function MyPage() {
                       <Button variant="outline" className="w-full justify-start">
                         결제 정보 관리
                       </Button>
-                      <Button variant="outline" className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-red-600 border-red-300 hover:bg-red-50"
+                      >
                         계정 탈퇴
                       </Button>
                     </div>

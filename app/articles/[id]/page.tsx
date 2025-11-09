@@ -15,9 +15,11 @@ import {
   Bookmark,
   Share2,
   BookOpen,
+  FileText,
 } from "lucide-react"
 import { ArticleDetail, ArticleDetailResponse, SummaryLevel } from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
+import apiClient from "@/lib/axios"
 
 export default function ArticleDetailPage() {
   const router = useRouter()
@@ -47,14 +49,9 @@ export default function ArticleDetailPage() {
     setError(null)
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"
-      const response = await fetch(`${backendUrl}/api/articles/${articleId}`)
-
-      if (!response.ok) {
-        throw new Error("기사를 불러오는데 실패했습니다")
-      }
-
-      const data: ArticleDetailResponse = await response.json()
+      const { data } = await apiClient.get<ArticleDetailResponse>(
+        `/api/summarized-articles?originalArticleId=${articleId}`
+      )
 
       if (data.success) {
         setSummaries(data.data.summaries)
@@ -280,6 +277,33 @@ export default function ArticleDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* View Original Article Button */}
+            <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-emerald-900">원문 기사가 궁금하신가요?</h4>
+                      <p className="text-sm text-emerald-700">
+                        요약된 내용 외에 전체 기사를 읽어보세요
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => router.push(`/articles/${articleId}/original`)}
+                    size="lg"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white whitespace-nowrap"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    원문 기사 보기
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Info Card */}
             <Card className="bg-blue-50 border-blue-200">

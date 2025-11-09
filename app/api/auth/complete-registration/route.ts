@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import serverApiClient from '@/lib/axios-server'
+import { AxiosError } from 'axios'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,33 +15,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 백엔드 서버에 추가 정보와 함께 회원가입 완료 요청
-    const backendResponse = await fetch(`${process.env.BACKEND_URL}/api/auth/complete-registration`, {
-      method: 'POST',
+    const { data: result } = await serverApiClient.post('/api/auth/complete-registration', body, {
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${tempToken}`
-      },
-      body: JSON.stringify(body)
+      }
     })
-
-    if (!backendResponse.ok) {
-      const errorData = await backendResponse.json()
-      return NextResponse.json(
-        { error: errorData.message || '회원가입 완료에 실패했습니다' },
-        { status: backendResponse.status }
-      )
-    }
-
-    const result = await backendResponse.json()
 
     // 성공 응답에 쿠키 설정
     const response = NextResponse.json(result)
-    response.cookies.set('authToken', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 // 7일
-    })
+
+    // token이 있는 경우에만 쿠키 설정
+    if (result.token || result.data?.accessToken) {
+      const token = result.token || result.data?.accessToken
+      response.cookies.set('authToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 // 7일
+      })
+    }
 
     // 임시 쿠키 삭제
     response.cookies.delete('tempToken')
@@ -49,6 +43,18 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Complete registration error:', error)
+
+    // Axios 에러 처리
+    if (error instanceof AxiosError) {
+      const status = error.response?.status || 500
+      const message = error.response?.data?.message || error.response?.data?.error || '서버 오류가 발생했습니다'
+
+      return NextResponse.json(
+        { error: message },
+        { status }
+      )
+    }
+
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다' },
       { status: 500 }

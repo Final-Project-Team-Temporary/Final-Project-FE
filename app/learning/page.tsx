@@ -35,7 +35,7 @@ export default function LearningCenterPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // 용어 카드 클릭 핸들러
-  const handleTermClick = (term) => {
+  const handleTermClick = (term: any) => {
     setSelectedTerm({
       ...term,
       id: term.id || Math.random().toString(),

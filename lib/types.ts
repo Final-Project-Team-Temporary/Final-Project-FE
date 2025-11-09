@@ -83,6 +83,25 @@ export interface ApiResponse<T> {
   message?: string
 }
 
+// 키워드 관리 관련 타입
+export interface UserKeyword {
+  id?: string
+  keyword: string
+  createdAt?: Date
+}
+
+export interface AddKeywordRequest {
+  keyword: string
+}
+
+export interface UpdateKeywordsRequest {
+  keywords: string[]
+}
+
+export interface DeleteKeywordRequest {
+  keyword: string
+}
+
 // 필터 관련 타입
 export interface ArticleFilters {
   category: string

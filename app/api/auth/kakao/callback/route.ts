@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from "next/server"
+import serverApiClient from "@/lib/axios-server"
+import { AxiosError } from "axios"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -19,22 +21,9 @@ export async function GET(request: NextRequest) {
 
   try {
     // 백엔드 서버에 카카오 인증 코드 전송
-    const backendResponse = await fetch(
-      `${process.env.BACKEND_URL}/api/auth/kakao-auth?code=${encodeURIComponent(code)}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      }
+    const { data: result } = await serverApiClient.post(
+      `/api/auth/kakao-auth?code=${encodeURIComponent(code)}`
     )
-
-    if (!backendResponse.ok) {
-      throw new Error("백엔드 인증 처리 실패")
-    }
-
-    const result = await backendResponse.json()
 
     console.log("status : ", result.data.loginStatus)
     console.log("accessToken : ", result.data.accessToken)
@@ -97,8 +86,24 @@ export async function GET(request: NextRequest) {
     throw new Error("알 수 없는 응답 형태")
   } catch (error) {
     console.error("Kakao OAuth callback error:", error)
+
+    let errorMessage = "로그인 처리 중 오류가 발생했습니다"
+
+    // Axios 에러 처리
+    if (error instanceof AxiosError) {
+      if (error.response?.status === 401) {
+        errorMessage = "인증에 실패했습니다"
+      } else if (error.response?.status === 500) {
+        errorMessage = "서버 오류가 발생했습니다"
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+    } else if (error instanceof Error) {
+      errorMessage = error.message
+    }
+
     return NextResponse.redirect(
-      new URL("/login?error=로그인 처리 중 오류가 발생했습니다", request.url)
+      new URL(`/login?error=${encodeURIComponent(errorMessage)}`, request.url)
     )
   }
 }

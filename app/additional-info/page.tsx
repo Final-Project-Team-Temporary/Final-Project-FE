@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/AuthContext"
 import { TrendingUp, User, CheckCircle, X } from "lucide-react"
+import axios from "axios"
 
 export default function AdditionalInfoPage() {
   const router = useRouter()
@@ -90,41 +91,32 @@ export default function AdditionalInfoPage() {
           ?.split("=")[1]
 
       // 백엔드 API 호출
-      const response = await fetch('/api/auth/complete-registration', {
-        method: 'POST',
+      const { data: result } = await axios.post('/api/auth/complete-registration', formData, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${tempToken}`
-        },
-        body: JSON.stringify(formData)
+        }
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        
-        // 정식 로그인 처리
-        const userData = {
-          id: result.data.userId || 'temp-id',
-          email: result.data.email || userName + '@kakao.com',
-          name: userName || result.data.userName || '사용자',
-          needsAdditionalInfo: false
-        }
-        
-        // AuthContext에 로그인 상태 설정 (accessToken 사용)
-        login(result.data.accessToken, userData)
-        
-        // 추가로 refreshToken을 localStorage에 저장
-        localStorage.setItem('refreshToken', result.data.refreshToken)
-        
-        // 임시 토큰과 데이터 정리
-        document.cookie = 'tempToken=; Max-Age=0; path=/'
-        document.cookie = 'userName=; Max-Age=0; path=/'
-
-        // 메인 페이지로 리다이렉트
-        router.push("/")
-      } else {
-        throw new Error('회원가입 완료에 실패했습니다.')
+      // 정식 로그인 처리
+      const userData = {
+        id: result.data.userId || 'temp-id',
+        email: result.data.email || userName + '@kakao.com',
+        name: userName || result.data.userName || '사용자',
+        needsAdditionalInfo: false
       }
+
+      // AuthContext에 로그인 상태 설정 (accessToken 사용)
+      login(result.data.accessToken, userData)
+
+      // 추가로 refreshToken을 localStorage에 저장
+      localStorage.setItem('refreshToken', result.data.refreshToken)
+
+      // 임시 토큰과 데이터 정리
+      document.cookie = 'tempToken=; Max-Age=0; path=/'
+      document.cookie = 'userName=; Max-Age=0; path=/'
+
+      // 메인 페이지로 리다이렉트
+      router.push("/")
     } catch (error) {
       console.error('Registration completion failed:', error)
       alert('회원가입 완료에 실패했습니다. 다시 시도해 주세요.')

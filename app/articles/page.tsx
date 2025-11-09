@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { ArticleSummary, ArticleListResponse } from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
+import apiClient from "@/lib/axios"
 
 export default function ArticlesPage() {
   const router = useRouter()
@@ -52,14 +53,9 @@ export default function ArticlesPage() {
     setError(null)
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"
-      const response = await fetch(`${backendUrl}/api/articles/summarized?page=${page}&size=20`)
-
-      if (!response.ok) {
-        throw new Error("기사 목록을 불러오는데 실패했습니다")
-      }
-
-      const data: ArticleListResponse = await response.json()
+      const { data } = await apiClient.get<ArticleListResponse>(
+        `/api/articles/summarized?page=${page}&size=20`
+      )
 
       if (data.success) {
         setArticles(data.data.content)
