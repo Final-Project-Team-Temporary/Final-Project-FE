@@ -13,9 +13,6 @@ import {
   PieChart,
   Newspaper,
   DollarSign,
-  Volume2,
-  Eye,
-  Clock,
   TrendingUp,
   Play,
   Youtube,
@@ -23,7 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import { VideoRecommendation } from "@/types/video"
-import { fetchRecommendedVideos, getYoutubeThumbnail, formatViewCount } from "@/services/videos"
+import { fetchRecommendedVideos, getYoutubeThumbnail } from "@/services/videos"
 
 export default function FinancialLearningPlatform() {
   const router = useRouter()
@@ -155,7 +152,7 @@ export default function FinancialLearningPlatform() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
 
       {/* Main Content */}
@@ -183,7 +180,7 @@ export default function FinancialLearningPlatform() {
                   <div>
                     <p className="text-sm text-gray-600">총 자산</p>
                     <p className="text-2xl font-bold">
-                      ₩{portfolioData.totalValue.toLocaleString()}
+                      ₩{portfolioData.totalValue.toLocaleString("ko-KR")}
                     </p>
                     <div className="flex items-center mt-1">
                       <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
@@ -271,7 +268,7 @@ export default function FinancialLearningPlatform() {
                           <span className="font-medium">{investment.name}</span>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold">₩{investment.value.toLocaleString()}</div>
+                          <div className="font-semibold">₩{investment.value.toLocaleString("ko-KR")}</div>
                           <div
                             className={`text-sm ${investment.change > 0 ? "text-green-600" : investment.change < 0 ? "text-red-600" : "text-gray-600"}`}
                           >
@@ -343,14 +340,14 @@ export default function FinancialLearningPlatform() {
           </div>
 
           {/* Recommended YouTube Videos */}
-          <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-100">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Youtube className="w-5 h-5 mr-2 text-red-600" />
                   <span>추천 유튜브 영상</span>
                 </div>
-                <Badge variant="outline" className="bg-white">
+                <Badge variant="outline">
                   총 {videoStats.totalCount}개
                 </Badge>
               </CardTitle>
@@ -402,7 +399,7 @@ export default function FinancialLearningPlatform() {
                         href={video.video_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group bg-white rounded-lg overflow-hidden hover:shadow-xl transition-all hover:scale-105 cursor-pointer"
+                        className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all hover:scale-105 cursor-pointer"
                       >
                         {/* 썸네일 */}
                         <div className="relative aspect-video bg-gray-200">
@@ -411,10 +408,6 @@ export default function FinancialLearningPlatform() {
                             alt={video.title}
                             className="w-full h-full object-cover"
                           />
-                          {/* 추천 점수 */}
-                          <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded font-semibold">
-                            {Math.round(video.recommendation_score)}점
-                          </div>
                           {/* 호버 시 재생 아이콘 */}
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
                             <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -423,35 +416,13 @@ export default function FinancialLearningPlatform() {
 
                         {/* 영상 정보 */}
                         <div className="p-3">
-                          {/* 품질 지표 */}
-                          <div className="flex gap-1 mb-2">
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-green-100 text-green-700"
-                            >
-                              품질 {Math.round(video.quality_score)}
-                            </Badge>
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-blue-100 text-blue-700"
-                            >
-                              연관성 {Math.round(video.relevance_score)}
-                            </Badge>
-                          </div>
-
                           {/* 제목 */}
                           <h3 className="font-semibold text-sm mb-2 line-clamp-2 group-hover:text-red-600 transition-colors">
                             {video.title}
                           </h3>
 
                           {/* 채널명 */}
-                          <p className="text-xs text-gray-600 mb-1">{video.channel}</p>
-
-                          {/* 조회수 */}
-                          <div className="flex items-center text-xs text-gray-500">
-                            <Eye className="w-3 h-3 mr-1" />
-                            <span>{formatViewCount(video.metrics.view_count)}</span>
-                          </div>
+                          <p className="text-xs text-gray-600">{video.channel}</p>
                         </div>
                       </a>
                     ))}
@@ -461,7 +432,6 @@ export default function FinancialLearningPlatform() {
                   <div className="mt-6 text-center">
                     <Button
                       variant="outline"
-                      className="bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-300"
                       onClick={() =>
                         window.open(
                           `https://www.youtube.com/results?search_query=${userPreferences.keywords.join("+")}`,

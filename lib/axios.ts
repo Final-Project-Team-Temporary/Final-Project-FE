@@ -9,6 +9,57 @@ const apiClient = axios.create({
   },
 })
 
+// 토큰 재발급 관련 변수
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+// 실패한 요청들을 큐에 저장
+const processQueue = (error: AxiosError | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+
+  failedQueue = []
+}
+
+// Refresh Token으로 Access Token 재발급
+const refreshAccessToken = async (): Promise<string> => {
+  const refreshToken = localStorage.getItem("refreshToken")
+
+  if (!refreshToken) {
+    throw new Error("No refresh token available")
+  }
+
+  const response = await axios.post(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"}/api/auth/refresh`,
+    { refreshToken },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  )
+
+  const { accessToken, refreshToken: newRefreshToken } = response.data.data
+
+  // 새 토큰 저장
+  localStorage.setItem("authToken", accessToken)
+  console.log("authToken", accessToken)
+  console.log("refreshToken", refreshToken)
+  if (newRefreshToken) {
+    localStorage.setItem("refreshToken", newRefreshToken)
+  }
+
+  return accessToken
+}
+
 // 요청 인터셉터: 모든 요청에 자동으로 토큰 추가
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -31,19 +82,62 @@ apiClient.interceptors.response.use(
   (response) => {
     return response
   },
-  (error: AxiosError) => {
-    // 401 Unauthorized: 인증 토큰 만료 또는 유효하지 않음
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("authToken")
-        // 로그인 페이지로 리다이렉트
-        window.location.href = "/login"
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    // 403 Forbidden: 토큰 만료 - Refresh Token으로 재발급 시도
+    if (error.response?.status === 403 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // 이미 토큰 재발급 중이면 큐에 추가
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+            }
+            return apiClient(originalRequest)
+          })
+          .catch((err) => {
+            return Promise.reject(err)
+          })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const newAccessToken = await refreshAccessToken()
+
+        // 큐에 있는 요청들 처리
+        processQueue(null, newAccessToken)
+
+        // 원래 요청 재시도
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+        }
+        return apiClient(originalRequest)
+      } catch (refreshError) {
+        // Refresh Token도 만료되었거나 재발급 실패
+        processQueue(refreshError as AxiosError, null)
+
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("authToken")
+          localStorage.removeItem("refreshToken")
+        }
+
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
       }
     }
 
-    // 403 Forbidden: 권한 없음
-    if (error.response?.status === 403) {
-      console.error("접근 권한이 없습니다.")
+    // 401 Unauthorized: 인증 토큰 없음 또는 유효하지 않음
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("authToken")
+        localStorage.removeItem("refreshToken")
+      }
     }
 
     // 500 Internal Server Error: 서버 오류

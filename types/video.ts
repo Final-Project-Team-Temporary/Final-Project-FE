@@ -8,7 +8,7 @@ export interface VideoMetrics {
 
 // 유튜브 추천 영상 정보
 export interface VideoRecommendation {
-  rank: number
+  rank: number | null
   title: string
   video_id: string
   video_url: string
@@ -20,7 +20,7 @@ export interface VideoRecommendation {
   content_accuracy: number
   analysis_summary: string
   trust_comment: string
-  metrics: VideoMetrics
+  metrics: VideoMetrics | null
 }
 
 // 유튜브 추천 API 응답 데이터
