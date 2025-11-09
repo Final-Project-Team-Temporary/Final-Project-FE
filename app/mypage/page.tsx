@@ -51,6 +51,7 @@ export default function MyPage() {
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [selectedTab, setSelectedTab] = useState("profile")
+  const [isMounted, setIsMounted] = useState(false)
 
   // 모의 사용자 데이터
   const [userProfile, setUserProfile] = useState({
@@ -88,6 +89,7 @@ export default function MyPage() {
   ]
 
   useEffect(() => {
+    setIsMounted(true)
     fetchProfile()
     loadUserKeywords()
     loadSuggestedKeywords()
@@ -429,11 +431,15 @@ export default function MyPage() {
                   {/* Investment Goals */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4">투자 목표</h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {userProfile.investmentGoals.map((goal, index) => (
-                        <Badge key={index} variant="secondary">
+                        <div
+                          key={index}
+                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full text-sm font-medium text-green-700 shadow-sm"
+                        >
+                          <Target className="w-3.5 h-3.5 mr-1.5" />
                           {goal}
-                        </Badge>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -447,7 +453,13 @@ export default function MyPage() {
                         <Tag className="w-5 h-5 mr-2 text-blue-600" />
                         관심 키워드
                       </h3>
-                      <Badge variant="secondary">{userProfile.interests.length}/10</Badge>
+                      <div className="inline-flex items-center px-3 py-1.5 bg-blue-100 border border-blue-200 rounded-full">
+                        <span className="text-sm font-semibold text-blue-700">
+                          {userProfile.interests.length}
+                        </span>
+                        <span className="text-sm text-blue-500 mx-0.5">/</span>
+                        <span className="text-sm text-blue-600">10</span>
+                      </div>
                     </div>
 
                     {/* Add New Keyword */}
@@ -486,28 +498,30 @@ export default function MyPage() {
 
                     {/* Current Keywords */}
                     <div className="mb-6">
-                      <Label className="text-sm text-gray-600 mb-2 block">내 키워드</Label>
-                      <div className="flex flex-wrap gap-2">
+                      <Label className="text-sm font-medium text-gray-700 mb-3 block">
+                        내 키워드
+                      </Label>
+                      <div className="flex flex-wrap gap-2.5 min-h-[3rem]">
                         {userProfile.interests.length === 0 ? (
-                          <div className="text-sm text-gray-500 py-4">
+                          <span className="text-sm text-gray-400 py-4 w-full text-center bg-gray-50 rounded-lg">
                             등록된 키워드가 없습니다. 관심 있는 키워드를 추가해보세요.
-                          </div>
+                          </span>
                         ) : (
                           userProfile.interests.map((interest, index) => (
-                            <Badge
+                            <div
                               key={index}
-                              variant="outline"
-                              className="pr-1 py-1 hover:bg-gray-100 transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full text-sm font-medium text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow group"
                             >
-                              {interest}
+                              <span>{interest}</span>
                               <button
                                 onClick={() => handleDeleteKeyword(interest)}
-                                className="ml-2 hover:bg-red-100 rounded-full p-0.5 transition-colors"
+                                className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-red-100 transition-colors duration-200 group-hover:scale-110"
                                 disabled={isLoadingKeywords}
+                                aria-label={`${interest} 삭제`}
                               >
-                                <X className="w-3 h-3 text-gray-500 hover:text-red-600" />
+                                <X className="w-3.5 h-3.5 text-blue-400 hover:text-red-500 transition-colors" />
                               </button>
-                            </Badge>
+                            </div>
                           ))
                         )}
                       </div>
@@ -515,23 +529,22 @@ export default function MyPage() {
 
                     {/* Suggested Keywords */}
                     <div>
-                      <Label className="text-sm text-gray-600 mb-2 flex items-center">
-                        <Sparkles className="w-4 h-4 mr-1 text-yellow-500" />
+                      <Label className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                        <Sparkles className="w-4 h-4 mr-1.5 text-amber-500" />
                         추천 키워드
                       </Label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2.5">
                         {suggestedKeywords
                           .filter((keyword) => !userProfile.interests.includes(keyword))
                           .map((keyword, index) => (
-                            <Badge
+                            <button
                               key={index}
-                              variant="secondary"
-                              className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 transition-colors"
                               onClick={() => handleAddSuggestedKeyword(keyword)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border-2 border-dashed border-gray-300 rounded-full text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 hover:scale-105 active:scale-95"
                             >
-                              <Plus className="w-3 h-3 mr-1" />
-                              {keyword}
-                            </Badge>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>{keyword}</span>
+                            </button>
                           ))}
                       </div>
                     </div>
@@ -603,7 +616,7 @@ export default function MyPage() {
                       <div className="flex justify-between items-center">
                         <span>포인트</span>
                         <span className="font-semibold">
-                          {learningStats.points.toLocaleString()}P
+                          {isMounted ? learningStats.points.toLocaleString("ko-KR") : learningStats.points}P
                         </span>
                       </div>
                       <div className="flex justify-between items-center">

@@ -85,9 +85,20 @@ export interface ApiResponse<T> {
 
 // 키워드 관리 관련 타입
 export interface UserKeyword {
-  id?: string
-  keyword: string
-  createdAt?: Date
+  userKeywordId: number
+  keywordName: string
+  priority: number
+}
+
+export interface UserKeywordsData {
+  keywords: UserKeyword[]
+}
+
+export interface UserKeywordsResponse {
+  code: string
+  message: string
+  success: boolean
+  data: UserKeywordsData
 }
 
 export interface AddKeywordRequest {
