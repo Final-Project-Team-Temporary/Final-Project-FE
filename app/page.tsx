@@ -22,6 +22,8 @@ import {
 } from "lucide-react"
 import { VideoRecommendation } from "@/types/video"
 import { fetchRecommendedVideos, getYoutubeThumbnail } from "@/services/videos"
+import { RecommendedArticle } from "@/types/article"
+import { fetchRecommendedArticles } from "@/services/articles"
 
 export default function FinancialLearningPlatform() {
   const router = useRouter()
@@ -36,6 +38,11 @@ export default function FinancialLearningPlatform() {
   })
   const [videosLoading, setVideosLoading] = useState(false)
   const [videosError, setVideosError] = useState<string | null>(null)
+
+  // 추천 기사 상태
+  const [recommendedArticles, setRecommendedArticles] = useState<RecommendedArticle[]>([])
+  const [articlesLoading, setArticlesLoading] = useState(false)
+  const [articlesError, setArticlesError] = useState<string | null>(null)
 
   // 사용자 통계
   const userStats = {
@@ -58,35 +65,6 @@ export default function FinancialLearningPlatform() {
     streak: 15,
   }
 
-  const recentArticles = [
-    {
-      id: 1,
-      title: "2024년 하반기 투자 전략: ETF 중심 포트폴리오 구성법",
-      difficulty: "intermediate",
-      readTime: "8분",
-      views: 1240,
-      hasAudio: true,
-      category: "투자전략",
-    },
-    {
-      id: 2,
-      title: "초보자를 위한 주식 기초: PER, PBR 이해하기",
-      difficulty: "beginner",
-      readTime: "5분",
-      views: 2150,
-      hasAudio: true,
-      category: "기초지식",
-    },
-    {
-      id: 3,
-      title: "글로벌 경제 동향과 한국 증시 전망",
-      difficulty: "advanced",
-      readTime: "12분",
-      views: 890,
-      hasAudio: false,
-      category: "시장분석",
-    },
-  ]
 
   // 유튜브 영상 추천 API 호출
   useEffect(() => {
@@ -97,7 +75,9 @@ export default function FinancialLearningPlatform() {
       try {
         // 사용자 키워드를 기반으로 유튜브 영상 추천
         const response = await fetchRecommendedVideos()
-        setRecommendedVideos(response.data.videos)
+        // 최대 5개만 보여주기
+        const limitedVideos = response.data.videos.slice(0, 5)
+        setRecommendedVideos(limitedVideos)
         setVideoStats({
           totalCount: response.data.totalCount,
           keywordBasedCount: response.data.keywordBasedCount,
@@ -114,29 +94,48 @@ export default function FinancialLearningPlatform() {
     loadRecommendedVideos()
   }, []) // 컴포넌트 마운트 시 한 번만 실행
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "beginner":
-        return "bg-green-100 text-green-800"
-      case "intermediate":
-        return "bg-yellow-100 text-yellow-800"
-      case "advanced":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
+  // 추천 기사 API 호출
+  useEffect(() => {
+    const loadRecommendedArticles = async () => {
+      setArticlesLoading(true)
+      setArticlesError(null)
 
-  const getDifficultyText = (difficulty: string) => {
-    switch (difficulty) {
-      case "beginner":
-        return "초급"
-      case "intermediate":
-        return "중급"
-      case "advanced":
-        return "고급"
-      default:
-        return "기타"
+      try {
+        const response = await fetchRecommendedArticles(0, 3)
+        if (response.success) {
+          setRecommendedArticles(response.data.content)
+        } else {
+          throw new Error(response.message)
+        }
+      } catch (error) {
+        console.error("Failed to load recommended articles:", error)
+        setArticlesError("추천 기사를 불러오는데 실패했습니다.")
+      } finally {
+        setArticlesLoading(false)
+      }
+    }
+
+    loadRecommendedArticles()
+  }, [])
+
+  const formatArticleDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInMs = now.getTime() - date.getTime()
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInDays = Math.floor(diffInHours / 24)
+
+    if (diffInHours < 1) {
+      return "방금 전"
+    } else if (diffInHours < 24) {
+      return `${diffInHours}시간 전`
+    } else if (diffInDays < 7) {
+      return `${diffInDays}일 전`
+    } else {
+      return date.toLocaleDateString("ko-KR", {
+        month: "long",
+        day: "numeric",
+      })
     }
   }
 
@@ -309,29 +308,64 @@ export default function FinancialLearningPlatform() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {recentArticles.map((article) => (
-                  <div
-                    key={article.id}
-                    className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-600 hover:shadow-md transition-all"
-                    onClick={() => router.push(`/articles/${article.id}`)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge className={getDifficultyColor(article.difficulty)}>
-                        {getDifficultyText(article.difficulty)}
-                      </Badge>
-                      <span className="text-xs text-gray-500">{article.readTime}</span>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {article.title}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <span>{article.category}</span>
-                      <span>👁 {article.views.toLocaleString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* 로딩 상태 */}
+              {articlesLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
+                  <p className="text-sm text-gray-600">추천 기사를 불러오는 중...</p>
+                </div>
+              )}
+
+              {/* 에러 상태 */}
+              {articlesError && !articlesLoading && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
+                  <p className="text-sm text-red-600 mb-4">{articlesError}</p>
+                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                    다시 시도
+                  </Button>
+                </div>
+              )}
+
+              {/* 기사 목록 */}
+              {!articlesLoading && !articlesError && recommendedArticles.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {recommendedArticles.map((article) => (
+                    <a
+                      key={article.id}
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        {article.press && (
+                          <Badge variant="secondary" className="text-xs">
+                            {article.press}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {formatArticleDate(article.publishedAt)}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        {article.title}
+                      </h3>
+                      <div className="flex items-center justify-end text-xs text-gray-500">
+                        <span>기사 보기 →</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* 기사가 없는 경우 */}
+              {!articlesLoading && !articlesError && recommendedArticles.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Newspaper className="w-12 h-12 text-gray-400 mb-3" />
+                  <p className="text-sm text-gray-600">추천할 기사가 없습니다</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

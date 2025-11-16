@@ -1,4 +1,6 @@
 import { Article, ArticleFilters, ApiResponse } from "@/lib/types"
+import { RecommendedArticlesResponse } from "@/types/article"
+import apiClient from "@/lib/axios"
 
 // 모의 기사 데이터
 const MOCK_ARTICLES: Article[] = [
@@ -230,13 +232,13 @@ export async function bookmarkArticle(articleId: number): Promise<ApiResponse<{ 
 export async function searchArticles(query: string): Promise<ApiResponse<Article[]>> {
   try {
     await new Promise(resolve => setTimeout(resolve, 600))
-    
+
     const searchResults = MOCK_ARTICLES.filter(article =>
       article.title.toLowerCase().includes(query.toLowerCase()) ||
       article.summary.toLowerCase().includes(query.toLowerCase()) ||
       article.keywords.some(keyword => keyword.toLowerCase().includes(query.toLowerCase()))
     )
-    
+
     return {
       success: true,
       data: searchResults
@@ -247,4 +249,12 @@ export async function searchArticles(query: string): Promise<ApiResponse<Article
       error: "검색 중 오류가 발생했습니다."
     }
   }
+}
+
+// 맞춤 추천 기사 가져오기 (백엔드 API)
+export async function fetchRecommendedArticles(page: number = 0, size: number = 10) {
+  const { data } = await apiClient.get<RecommendedArticlesResponse>(
+    `/api/recommends/articles?page=${page}&size=${size}`
+  )
+  return data
 }

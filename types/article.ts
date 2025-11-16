@@ -65,3 +65,33 @@ export interface ArticleOriginalResponse {
   success: boolean
   data: ArticleOriginal
 }
+
+// 추천 기사
+export interface RecommendedArticle {
+  id: string
+  title: string
+  press: string | null
+  url: string
+  publishedAt: string
+}
+
+// 추천 기사 데이터 (페이지네이션 포함)
+export interface RecommendedArticlesData {
+  content: RecommendedArticle[]
+  currentPage: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+  isFirst: boolean
+  isLast: boolean
+}
+
+// 추천 기사 API 응답
+export interface RecommendedArticlesResponse {
+  code: string
+  message: string
+  success: boolean
+  data: RecommendedArticlesData
+}
