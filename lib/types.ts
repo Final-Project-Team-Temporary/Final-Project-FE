@@ -147,9 +147,9 @@ export interface SelectOption {
 
 // 용어 관련 타입
 export interface Term {
-  termId: number
-  term: string
-  definition: string
+  userTermId: number
+  termName: string
+  termDescription: string
   createdAt: string
 }
 
@@ -162,9 +162,7 @@ export interface TermsResponse {
   code: string
   message: string
   success: boolean
-  data: {
-    terms: Term[]
-  }
+  data: Term[]
 }
 
 export interface SaveTermResponse {
@@ -172,4 +170,103 @@ export interface SaveTermResponse {
   message: string
   success: boolean
   data: Term
+}
+
+// 퀴즈 관련 타입
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  answerIndex: number
+  explanation?: string
+  term?: string
+}
+
+export interface QuizData {
+  quizzes: QuizQuestion[]
+  generatedAt: string
+  term?: string
+  terms?: string
+  totalQuestions?: number
+  estimatedTime?: number
+}
+
+export interface QuizResponse {
+  code: string
+  message: string
+  success: boolean
+  data: QuizData
+}
+
+export interface CustomQuizRequest {
+  terms: string[]
+  questionsPerTerm: number
+  difficulty: string
+}
+
+export interface SmartQuizRequest {
+  totalQuestions: number
+}
+
+export interface WeeklyChallenge {
+  id: number
+  weekStartDate: string
+  weekEndDate: string
+  totalQuestions: number
+  timeLimit: number
+  terms: string
+  isActive: boolean
+}
+
+export interface ChallengeAttempt {
+  score: number
+  totalQuestions: number
+  timeSpent: number
+  accuracy: number
+  rank: number
+  attemptedAt: string
+}
+
+export interface ChallengeRanking {
+  rank: number
+  userId: number
+  username: string
+  score: number
+  totalQuestions: number
+  timeSpent: number
+  accuracy: number
+}
+
+export interface ChallengeStats {
+  totalParticipants: number
+  averageScore: number
+}
+
+export interface WeeklyChallengeResponse {
+  challenge: WeeklyChallenge
+  myAttempt: ChallengeAttempt | null
+  quizzes: QuizQuestion[] | null
+  ranking: ChallengeRanking[]
+  stats: ChallengeStats
+}
+
+export interface ChallengeSubmitRequest {
+  challengeId: number
+  score: number
+  totalQuestions: number
+  timeSpent: number
+  answers: number[]
+}
+
+export interface QuizResultRequest {
+  term: string
+  score: number
+  totalQuestions: number
+}
+
+export interface LearningStats {
+  totalTerms: number
+  completedQuizzes: number
+  averageAccuracy: number
+  lastStudied: string
+  streak: number
 }

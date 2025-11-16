@@ -10,14 +10,15 @@ import Header from "@/components/layout/Header"
 import {
   Target,
   ChevronRight,
-  PieChart,
   Newspaper,
-  DollarSign,
-  TrendingUp,
   Play,
   Youtube,
   Loader2,
   AlertCircle,
+  FileEdit,
+  Sparkles,
+  Brain,
+  Trophy,
 } from "lucide-react"
 import { VideoRecommendation } from "@/types/video"
 import { fetchRecommendedVideos, getYoutubeThumbnail } from "@/services/videos"
@@ -36,19 +37,7 @@ export default function FinancialLearningPlatform() {
   const [videosLoading, setVideosLoading] = useState(false)
   const [videosError, setVideosError] = useState<string | null>(null)
 
-  // 모의 데이터
-  const portfolioData = {
-    totalValue: 1250000,
-    dailyChange: 25000,
-    dailyChangePercent: 2.04,
-    investments: [
-      { name: "삼성전자", value: 450000, change: 2.3, color: "#28A745" },
-      { name: "KODEX 200", value: 300000, change: -1.2, color: "#DC3545" },
-      { name: "SK하이닉스", value: 250000, change: 3.1, color: "#28A745" },
-      { name: "현금", value: 250000, change: 0, color: "#6C757D" },
-    ],
-  }
-
+  // 사용자 통계
   const userStats = {
     articlesRead: 28,
     badges: 8,
@@ -173,29 +162,7 @@ export default function FinancialLearningPlatform() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">총 자산</p>
-                    <p className="text-2xl font-bold">
-                      ₩{portfolioData.totalValue.toLocaleString("ko-KR")}
-                    </p>
-                    <div className="flex items-center mt-1">
-                      <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
-                      <span className="text-sm text-green-600">
-                        +{portfolioData.dailyChangePercent}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -242,102 +209,131 @@ export default function FinancialLearningPlatform() {
             </Card>
           </div>
 
-          {/* Main Dashboard Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Portfolio Overview */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <PieChart className="w-5 h-5 mr-2" />
-                    포트폴리오 현황
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {portfolioData.investments.map((investment, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: investment.color }}
-                          />
-                          <span className="font-medium">{investment.name}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold">₩{investment.value.toLocaleString("ko-KR")}</div>
-                          <div
-                            className={`text-sm ${investment.change > 0 ? "text-green-600" : investment.change < 0 ? "text-red-600" : "text-gray-600"}`}
-                          >
-                            {investment.change > 0 ? "+" : ""}
-                            {investment.change}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+          {/* Quick Quiz Start */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  <Target className="w-5 h-5 mr-2" />
+                  퀴즈 빠른 시작
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => router.push("/quiz")}>
+                  전체 보기
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                다양한 방식으로 학습한 내용을 복습하고 실력을 키워보세요
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 커스텀 모의고사 */}
+                <div
+                  className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => router.push("/quiz/custom")}
+                >
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                    <FileEdit className="w-5 h-5 text-blue-600" />
                   </div>
-                  <Button
-                    className="w-full mt-4"
-                    variant="outline"
-                    onClick={() => router.push("/portfolio")}
-                  >
-                    포트폴리오 상세보기
-                    <ChevronRight className="w-4 h-4 ml-2" />
+                  <h3 className="font-semibold text-gray-900 mb-1">커스텀 모의고사</h3>
+                  <p className="text-xs text-gray-600 mb-3">원하는 용어로 자유롭게 구성</p>
+                  <Button size="sm" className="w-full bg-blue-900 hover:bg-blue-800">
+                    시작하기
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
 
-            {/* Recommended Articles */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Newspaper className="w-5 h-5 mr-2" />
-                    맞춤 추천 기사
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-sm text-gray-600 mb-4">
-                    선호 키워드: {userPreferences.keywords.join(", ")}
+                {/* 스마트 랜덤 모의고사 */}
+                <div
+                  className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => router.push("/quiz/smart")}
+                >
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                    <Sparkles className="w-5 h-5 text-blue-600" />
                   </div>
-
-                  <div className="space-y-3">
-                    {recentArticles.slice(0, 3).map((article, index) => (
-                      <div
-                        key={index}
-                        className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => router.push(`/articles/${article.id}`)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="font-medium text-sm line-clamp-2">{article.title}</div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {article.category} • {article.readTime}
-                            </div>
-                          </div>
-                          <Badge className={getDifficultyColor(article.difficulty)}>
-                            {getDifficultyText(article.difficulty)}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    className="w-full bg-blue-900 hover:bg-blue-800"
-                    onClick={() => router.push("/articles")}
-                  >
-                    전체 기사 보기
-                    <ChevronRight className="w-4 h-4 ml-2" />
+                  <h3 className="font-semibold text-gray-900 mb-1">스마트 랜덤</h3>
+                  <p className="text-xs text-gray-600 mb-3">AI가 자동으로 문제 선정</p>
+                  <Button size="sm" className="w-full bg-blue-900 hover:bg-blue-800">
+                    시작하기
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </div>
+
+                {/* 단일 용어 집중 학습 */}
+                <div
+                  className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-600 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => router.push("/quiz/single")}
+                >
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                    <Brain className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">단일 용어 학습</h3>
+                  <p className="text-xs text-gray-600 mb-3">하나의 용어를 깊이 학습</p>
+                  <Button size="sm" className="w-full bg-blue-900 hover:bg-blue-800">
+                    시작하기
+                  </Button>
+                </div>
+
+                {/* 주간 챌린지 */}
+                <div
+                  className="p-4 border-2 border-yellow-200 bg-yellow-50 rounded-lg hover:border-yellow-400 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => router.push("/quiz/challenge")}
+                >
+                  <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center mb-3">
+                    <Trophy className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">주간 챌린지</h3>
+                  <p className="text-xs text-gray-600 mb-3">다른 사용자와 경쟁하기</p>
+                  <Button size="sm" className="w-full bg-yellow-600 hover:bg-yellow-700">
+                    도전하기
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recommended Articles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Newspaper className="w-5 h-5 mr-2" />
+                  맞춤 추천 기사
+                </div>
+                <Button variant="outline" size="sm" onClick={() => router.push("/articles")}>
+                  전체 보기
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-2">
+                선호 키워드: {userPreferences.keywords.join(", ")}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentArticles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-600 hover:shadow-md transition-all"
+                    onClick={() => router.push(`/articles/${article.id}`)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <Badge className={getDifficultyColor(article.difficulty)}>
+                        {getDifficultyText(article.difficulty)}
+                      </Badge>
+                      <span className="text-xs text-gray-500">{article.readTime}</span>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {article.title}
+                    </h3>
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span>{article.category}</span>
+                      <span>👁 {article.views.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Recommended YouTube Videos */}
           <Card>
