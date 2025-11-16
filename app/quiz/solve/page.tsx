@@ -139,12 +139,29 @@ export default function QuizSolvePage() {
       const resultData = {
         score,
         totalQuestions: quizData.quizzes.length,
-        quizData,
+        quizData: {
+          quizzes: quizData.quizzes,
+          terms: quizData.terms,
+          term: quizData.term,
+        },
         userAnswers: [...userAnswers, selectedAnswer!],
       }
-      sessionStorage.setItem("quizResult", JSON.stringify(resultData))
-      sessionStorage.removeItem("currentQuiz")
-      router.push("/quiz/result")
+
+      try {
+        sessionStorage.setItem("quizResult", JSON.stringify(resultData))
+        sessionStorage.removeItem("currentQuiz")
+        sessionStorage.removeItem("quizType")
+        router.push("/quiz/result")
+      } catch (error) {
+        console.error("Failed to save quiz result:", error)
+        // 에러 발생 시에도 결과 페이지로 이동하되, 최소 데이터만 전달
+        const minimalData = {
+          score,
+          totalQuestions: quizData.quizzes.length,
+        }
+        sessionStorage.setItem("quizResult", JSON.stringify(minimalData))
+        router.push("/quiz/result")
+      }
     } else {
       setCurrentIndex((prev) => prev + 1)
       setSelectedAnswer(null)

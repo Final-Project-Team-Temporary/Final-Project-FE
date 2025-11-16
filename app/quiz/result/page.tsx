@@ -31,12 +31,17 @@ export default function QuizResultPage() {
   useEffect(() => {
     const savedResult = sessionStorage.getItem("quizResult")
     if (savedResult) {
-      const data = JSON.parse(savedResult) as QuizResult
-      setResult(data)
+      try {
+        const data = JSON.parse(savedResult) as QuizResult
+        setResult(data)
 
-      // 용어별 통계 계산
-      if (data.quizData.quizzes) {
-        calculateTermStats(data)
+        // 용어별 통계 계산
+        if (data.quizData?.quizzes && Array.isArray(data.quizData.quizzes)) {
+          calculateTermStats(data)
+        }
+      } catch (error) {
+        console.error("Failed to parse quiz result:", error)
+        router.push("/quiz")
       }
     } else {
       router.push("/quiz")
@@ -78,9 +83,28 @@ export default function QuizResultPage() {
 
   const handleRetry = () => {
     // 동일한 퀴즈 다시 풀기
-    sessionStorage.setItem("currentQuiz", JSON.stringify(result.quizData))
-    sessionStorage.removeItem("quizResult")
-    router.push("/quiz/solve")
+    if (!result.quizData?.quizzes) {
+      console.error("No quiz data available for retry")
+      router.push("/quiz")
+      return
+    }
+
+    const quizDataForRetry = {
+      quizzes: result.quizData.quizzes,
+      generatedAt: new Date().toISOString(),
+      terms: result.quizData.terms,
+      term: result.quizData.term,
+      totalQuestions: result.totalQuestions,
+    }
+
+    try {
+      sessionStorage.setItem("currentQuiz", JSON.stringify(quizDataForRetry))
+      sessionStorage.removeItem("quizResult")
+      router.push("/quiz/solve")
+    } catch (error) {
+      console.error("Failed to save quiz for retry:", error)
+      router.push("/quiz")
+    }
   }
 
   return (
