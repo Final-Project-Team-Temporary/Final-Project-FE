@@ -22,7 +22,8 @@ import { ArticleOriginal, ArticleOriginalResponse } from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
 import apiClient from "@/lib/axios"
 import TermExplanationModal from "@/components/dictionary/TermExplanationModal"
-import { getDummyTermExplanation } from "@/services/terms"
+import { fetchTermDefinition } from "@/services/terms"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ArticleOriginalPage() {
   const router = useRouter()
@@ -41,7 +42,9 @@ export default function ArticleOriginalPage() {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 })
   const [showModal, setShowModal] = useState(false)
   const [termExplanation, setTermExplanation] = useState("")
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   const handleLogout = () => {
     logout()
@@ -107,11 +110,27 @@ export default function ArticleOriginalPage() {
   }
 
   // 설명 보기 핸들러
-  const handleShowExplanation = () => {
-    const explanation = getDummyTermExplanation(selectedText)
-    setTermExplanation(explanation)
-    setShowModal(true)
+  const handleShowExplanation = async () => {
+    if (!selectedText || isLoadingExplanation) return
+
+    setIsLoadingExplanation(true)
     setShowPopup(false)
+
+    try {
+      const response = await fetchTermDefinition(selectedText)
+      setTermExplanation(response.definition)
+      setShowModal(true)
+    } catch (error) {
+      console.error("Failed to fetch term definition:", error)
+      toast({
+        title: "용어 설명 실패",
+        description: "용어 설명을 가져오는데 실패했습니다. 다시 시도해주세요.",
+        variant: "destructive",
+      })
+      setShowPopup(true) // 실패 시 팝업 다시 표시
+    } finally {
+      setIsLoadingExplanation(false)
+    }
   }
 
   // 모달 닫기 핸들러
@@ -303,23 +322,42 @@ export default function ArticleOriginalPage() {
               </Button>
             </div>
 
-            {/* Info Card */}
-            <Card className="bg-emerald-50 border-emerald-200">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xl">💡</span>
+            {/* Info Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-emerald-50 border-emerald-200">
+                <CardContent className="p-6">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xl">💡</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-emerald-900 mb-1">학습 팁</h4>
+                      <p className="text-sm text-emerald-800">
+                        원문 기사를 읽으신 후, 요약본을 다시 확인하시면 주요 내용을 더 잘 이해하실
+                        수 있습니다.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-emerald-900 mb-1">학습 팁</h4>
-                    <p className="text-sm text-emerald-800">
-                      원문 기사를 읽으신 후, 요약본을 다시 확인하시면 주요 내용을 더 잘 이해하실 수
-                      있습니다. 난이도별 요약과 함께 비교해보세요!
-                    </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-6">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="text-white w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-blue-900 mb-1">AI 용어 설명</h4>
+                      <p className="text-sm text-blue-800">
+                        모르는 용어를 드래그하면 AI가 설명해드립니다. 나의 용어집에도 저장할 수
+                        있어요!
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </main>
@@ -337,9 +375,19 @@ export default function ArticleOriginalPage() {
             onClick={handleShowExplanation}
             size="sm"
             className="bg-blue-900 hover:bg-blue-800 shadow-lg"
+            disabled={isLoadingExplanation}
           >
-            <Sparkles className="w-4 h-4 mr-2" />
-            AI 설명 보기
+            {isLoadingExplanation ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                설명 요청 중...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI 설명 보기
+              </>
+            )}
           </Button>
         </div>
       )}

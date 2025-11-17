@@ -61,14 +61,24 @@ export default function DictionaryPage() {
     }
   }
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-"
+    const date = new Date(dateString)
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+  }
+
   const handleTermClick = (term: Term) => {
     setSelectedTerm({
       id: term.userTermId.toString(),
       term: term.termName,
       definition: term.termDescription,
       category: "금융",
-      savedDate: term.createdAt || "2024-01-15",
-      lastReviewDate: "2024-01-18",
+      savedDate: formatDate(term.createdAt || ""),
+      lastReviewDate: "-",
       quizAttempts: 5,
       quizAccuracy: 85,
       relatedTerms: ["통화정책", "콜금리", "시중금리"],

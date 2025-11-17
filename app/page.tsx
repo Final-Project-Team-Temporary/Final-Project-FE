@@ -65,7 +65,6 @@ export default function FinancialLearningPlatform() {
     streak: 15,
   }
 
-
   // 유튜브 영상 추천 API 호출
   useEffect(() => {
     const loadRecommendedVideos = async () => {
@@ -150,8 +149,17 @@ export default function FinancialLearningPlatform() {
           <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-xl p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold mb-2">안녕하세요, {user?.name || "김투자"}님!</h1>
-                <p className="text-blue-100">오늘도 현명한 투자 학습을 시작해보세요</p>
+                {isAuthenticated && user?.name ? (
+                  <>
+                    <h1 className="text-2xl font-bold mb-2">안녕하세요, {user.name}님!</h1>
+                    <p className="text-blue-100">오늘도 현명한 금융 학습을 시작해보세요</p>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="text-2xl font-bold mb-2">EconoEasy에 오신 것을 환영합니다!</h1>
+                    <p className="text-blue-100">로그인하고 맞춤형 금융 학습을 시작해보세요</p>
+                  </>
+                )}
               </div>
               <div className="text-right">
                 <div className="text-sm text-blue-200">연속 학습일</div>
@@ -377,9 +385,7 @@ export default function FinancialLearningPlatform() {
                   <Youtube className="w-5 h-5 mr-2 text-red-600" />
                   <span>추천 유튜브 영상</span>
                 </div>
-                <Badge variant="outline">
-                  총 {videoStats.totalCount}개
-                </Badge>
+                <Badge variant="outline">총 {videoStats.totalCount}개</Badge>
               </CardTitle>
               <p className="text-sm text-gray-600 mt-2">
                 선호 키워드를 기반으로 선별한 금융 학습 영상입니다

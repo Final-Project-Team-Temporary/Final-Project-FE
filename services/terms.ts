@@ -59,6 +59,33 @@ export const deleteTerm = async (termId: number): Promise<boolean> => {
 }
 
 /**
+ * AI 용어 설명 요청
+ * @param term - 설명을 요청할 용어
+ * @returns 용어와 설명
+ */
+export const fetchTermDefinition = async (
+  term: string
+): Promise<{ term: string; definition: string }> => {
+  try {
+    const { data } = await apiClient.get<{
+      code: string
+      message: string
+      success: boolean
+      data: { term: string; definition: string }
+    }>("/api/users/terms/explain", { params: { term } })
+
+    if (data.success) {
+      return data.data
+    } else {
+      throw new Error(data.message || "용어 설명을 가져오는데 실패했습니다")
+    }
+  } catch (error) {
+    console.error("Error fetching term definition:", error)
+    throw error
+  }
+}
+
+/**
  * 더미 AI 설명 생성 (실제 AI API 구현 전 임시)
  * @param term - 설명을 요청할 용어
  * @returns 더미 설명

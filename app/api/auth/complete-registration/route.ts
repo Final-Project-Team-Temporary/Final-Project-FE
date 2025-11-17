@@ -27,17 +27,47 @@ export async function POST(request: NextRequest) {
     // token이 있는 경우에만 쿠키 설정
     if (result.token || result.data?.accessToken) {
       const token = result.token || result.data?.accessToken
+      const refreshToken = result.refreshToken || result.data?.refreshToken
+
       response.cookies.set('authToken', token, {
-        httpOnly: true,
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 // 7일
+      })
+
+      if (refreshToken) {
+        response.cookies.set('refreshToken', refreshToken, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 // 7일
+        })
+      }
+
+      // userName을 쿠키에서 가져와서 userData 생성
+      const userName = request.cookies.get('userName')?.value
+
+      // 사용자 데이터를 쿠키에 저장
+      const userData = {
+        id: result.data?.userId || 'temp-id',
+        email: result.data?.email || (userName ? userName + '@kakao.com' : 'user@econoeasy.com'),
+        name: userName || result.data?.userName || '사용자',
+        needsAdditionalInfo: false
+      }
+
+      response.cookies.set('userData', JSON.stringify(userData), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60
       })
     }
 
     // 임시 쿠키 삭제
     response.cookies.delete('tempToken')
     response.cookies.delete('tempUserData')
+    response.cookies.delete('userName')
 
     return response
 
