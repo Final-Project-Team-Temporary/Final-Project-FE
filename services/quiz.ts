@@ -2,6 +2,7 @@ import apiClient from "@/lib/axios"
 import {
   QuizData,
   QuizResponse,
+  ArticleQuizData,
   CustomQuizRequest,
   SmartQuizRequest,
   WeeklyChallengeResponse,
@@ -122,6 +123,59 @@ export const fetchLearningStats = async (): Promise<LearningStats> => {
     return data
   } catch (error) {
     console.error("Error fetching learning stats:", error)
+    throw error
+  }
+}
+
+/**
+ * 기사 기반 퀴즈 조회
+ * @param articleId - 기사 ID (문자열)
+ * @param count - 퀴즈 개수
+ * @returns 기사 퀴즈 데이터
+ */
+export const fetchArticleQuiz = async (
+  articleId: string,
+  count: number = 3
+): Promise<ArticleQuizData> => {
+  try {
+    const { data } = await apiClient.get<{
+      code: string
+      message: string
+      success: boolean
+      data: {
+        quizzes: Array<{
+          question: string
+          options: string[]
+          explanation: string
+          answer_index: number
+        }>
+        createdAt: string | null
+        term: string | null
+      }
+    }>("/api/quiz/article", {
+      params: { articleId, count },
+      timeout: 60000, // 60초 타임아웃
+    })
+
+    if (data.success) {
+      // answer_index를 answerIndex로 변환
+      const quizzes = data.data.quizzes.map((q) => ({
+        question: q.question,
+        options: q.options,
+        explanation: q.explanation,
+        answerIndex: q.answer_index,
+      }))
+
+      return {
+        quizzes,
+        createdAt: data.data.createdAt,
+        term: data.data.term,
+      }
+    } else {
+      throw new Error(data.message || "퀴즈를 불러오는데 실패했습니다")
+    }
+  } catch (error) {
+    console.error("Error fetching article quiz:", error)
     throw error
   }
 }

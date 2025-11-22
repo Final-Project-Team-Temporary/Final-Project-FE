@@ -190,6 +190,13 @@ export interface QuizData {
   estimatedTime?: number
 }
 
+// 기사 퀴즈 데이터
+export interface ArticleQuizData {
+  quizzes: QuizQuestion[]
+  createdAt: string | null
+  term: string | null
+}
+
 export interface QuizResponse {
   code: string
   message: string
