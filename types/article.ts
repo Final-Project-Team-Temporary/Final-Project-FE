@@ -39,6 +39,20 @@ export interface ArticleListResponse {
   } & PaginationInfo
 }
 
+// 기사 키워드 정보
+export interface ArticleKeyword {
+  term: string
+  termSummary: string
+}
+
+// 관련 주식 정보
+export interface ArticleStock {
+  stockName: string
+  stockCode: string
+  market: string
+  sector: string
+}
+
 // 기사 상세 API 응답
 export interface ArticleDetailResponse {
   code: string
@@ -46,6 +60,8 @@ export interface ArticleDetailResponse {
   success: boolean
   data: {
     summaries: ArticleDetail[]
+    keywords: ArticleKeyword[]
+    stocks: ArticleStock[]
   }
 }
 

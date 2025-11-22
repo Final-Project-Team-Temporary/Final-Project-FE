@@ -17,8 +17,17 @@ import {
   BookOpen,
   FileText,
   Target,
+  Tag,
+  ChevronRight,
+  Info,
 } from "lucide-react"
-import { ArticleDetail, ArticleDetailResponse, SummaryLevel } from "@/types/article"
+import {
+  ArticleDetail,
+  ArticleDetailResponse,
+  ArticleKeyword,
+  ArticleStock,
+  SummaryLevel,
+} from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
 import apiClient from "@/lib/axios"
 
@@ -29,9 +38,12 @@ export default function ArticleDetailPage() {
   const { isAuthenticated, user, logout } = useAuth()
 
   const [summaries, setSummaries] = useState<ArticleDetail[]>([])
+  const [keywords, setKeywords] = useState<ArticleKeyword[]>([])
+  const [stocks, setStocks] = useState<ArticleStock[]>([])
   const [selectedLevel, setSelectedLevel] = useState<SummaryLevel>("MEDIUM")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedKeyword, setSelectedKeyword] = useState<ArticleKeyword | null>(null)
 
   const [isBookmarked, setIsBookmarked] = useState(false)
 
@@ -56,6 +68,8 @@ export default function ArticleDetailPage() {
 
       if (data.success) {
         setSummaries(data.data.summaries)
+        setKeywords(data.data.keywords || [])
+        setStocks(data.data.stocks || [])
       } else {
         throw new Error(data.message || "기사를 불러오는데 실패했습니다")
       }
@@ -279,6 +293,103 @@ export default function ArticleDetailPage() {
               </Card>
             )}
 
+            {/* Keywords Section */}
+            {keywords.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Tag className="w-5 h-5 text-orange-600" />
+                    <CardTitle className="text-xl">핵심 키워드</CardTitle>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    AI가 추출한 기사의 핵심 용어입니다. 클릭하면 설명을 볼 수 있습니다.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* 중복 제거 */}
+                    {keywords
+                      .filter(
+                        (keyword, index, self) =>
+                          index === self.findIndex((k) => k.term === keyword.term)
+                      )
+                      .map((keyword, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedKeyword(keyword)}
+                          className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-all text-left group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Tag className="w-4 h-4 text-orange-600" />
+                              <span className="font-semibold text-gray-900">
+                                {keyword.term}
+                              </span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-600 transition-colors" />
+                          </div>
+                          <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                            {keyword.termSummary}
+                          </p>
+                        </button>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Related Stocks Section */}
+            {stocks.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <CardTitle className="text-xl">관련 주식</CardTitle>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    이 기사와 관련된 주요 주식 종목입니다.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {stocks.map((stock, index) => (
+                      <Card
+                        key={index}
+                        className="border-2 border-green-200 hover:border-green-400 hover:shadow-md transition-all cursor-pointer group"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-900 text-lg mb-1">
+                                {stock.stockName}
+                              </h4>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {stock.stockCode}
+                                </Badge>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs bg-green-100 text-green-700"
+                                >
+                                  {stock.market}
+                                </Badge>
+                              </div>
+                            </div>
+                            <TrendingUp className="w-5 h-5 text-green-600 group-hover:scale-110 transition-transform" />
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm text-gray-600">
+                              <span className="font-semibold">업종:</span> {stock.sector}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Action Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* View Original Article Button */}
@@ -365,6 +476,62 @@ export default function ArticleDetailPage() {
           </div>
         )}
       </main>
+
+      {/* Keyword Detail Modal */}
+      {selectedKeyword && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedKeyword(null)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Tag className="w-6 h-6 text-orange-600" />
+                <h3 className="text-2xl font-bold text-gray-900">{selectedKeyword.term}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedKeyword(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-orange-50 border-l-4 border-orange-600 rounded-lg p-4 mb-4">
+              <div className="flex items-start space-x-2">
+                <Info className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <p className="text-gray-800 leading-relaxed">{selectedKeyword.termSummary}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setSelectedKeyword(null)}
+                variant="outline"
+                className="flex-1"
+              >
+                닫기
+              </Button>
+              <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
+                용어집에 저장
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
