@@ -18,6 +18,7 @@ import {
   BookmarkedArticle,
 } from "@/services/bookmarks"
 import { useToast } from "@/hooks/use-toast"
+import { useDebounce } from "@/hooks/use-debounce"
 import { useAuth } from "@/contexts/AuthContext"
 
 type TabType = "all" | "recommended" | "bookmarks"
@@ -29,6 +30,7 @@ export default function ArticlesPage() {
 
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
   const [articles, setArticles] = useState<ArticleSummary[]>([])
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
@@ -61,12 +63,23 @@ export default function ArticlesPage() {
   // 북마크 상태 트래킹 (articleId -> isBookmarked)
   const [bookmarkStates, setBookmarkStates] = useState<Record<string, boolean>>({})
 
+  // 검색어 변경 시 페이지 리셋
+  useEffect(() => {
+    if (activeTab === "all") {
+      setCurrentPage(0)
+    }
+  }, [debouncedSearchQuery])
+
   // 백엔드에서 기사 목록 가져오기
   useEffect(() => {
     if (activeTab === "all") {
-      fetchArticles(currentPage)
+      if (debouncedSearchQuery) {
+        searchArticles(debouncedSearchQuery, currentPage)
+      } else {
+        fetchArticles(currentPage)
+      }
     }
-  }, [currentPage, activeTab])
+  }, [currentPage, activeTab, debouncedSearchQuery])
 
   // 추천 기사 가져오기
   useEffect(() => {
@@ -110,6 +123,40 @@ export default function ArticlesPage() {
       }
     } catch (err) {
       console.error("Failed to fetch articles:", err)
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const searchArticles = async (keyword: string, page: number) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { data } = await apiClient.get<ArticleListResponse>(
+        `/api/articles/search?keyword=${encodeURIComponent(keyword)}&page=${page}&size=20`
+      )
+
+      if (data.success) {
+        setArticles(data.data.content)
+        setCurrentPage(data.data.currentPage)
+        setTotalPages(data.data.totalPages)
+        setTotalElements(data.data.totalElements)
+        setHasNext(data.data.hasNext)
+        setHasPrevious(data.data.hasPrevious)
+
+        // API에서 받은 북마크 상태로 초기화
+        const states: Record<string, boolean> = {}
+        data.data.content.forEach((article) => {
+          states[article.id] = article.isBookmarked
+        })
+        setBookmarkStates((prev) => ({ ...prev, ...states }))
+      } else {
+        throw new Error(data.message || "기사 검색에 실패했습니다")
+      }
+    } catch (err) {
+      console.error("Failed to search articles:", err)
       setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다")
     } finally {
       setIsLoading(false)
@@ -240,6 +287,18 @@ export default function ArticlesPage() {
     setBookmarksCurrentPage(0)
   }
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      setCurrentPage(0)
+      if (searchQuery) {
+        searchArticles(searchQuery, 0)
+      } else {
+        fetchArticles(0)
+      }
+    }
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("ko-KR", {
@@ -249,11 +308,7 @@ export default function ArticlesPage() {
     })
   }
 
-  const filteredArticles = articles.filter((article) => {
-    if (!searchQuery) return true
-    return article.title.toLowerCase().includes(searchQuery.toLowerCase())
-  })
-
+  // 추천 기사와 북마크는 클라이언트 필터링 유지 (검색 API 미지원)
   const filteredRecommendedArticles = recommendedArticles.filter((article) => {
     if (!searchQuery) return true
     return article.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -319,6 +374,7 @@ export default function ArticlesPage() {
               placeholder="기사 제목으로 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="pl-10 h-12"
             />
           </div>
@@ -328,12 +384,14 @@ export default function ArticlesPage() {
         {activeTab === "all" && (
           <div className="flex items-center justify-between mb-6">
             <div className="text-sm text-gray-600">
-              총 <span className="font-semibold text-gray-900">{totalElements}</span>개의 기사
-              {searchQuery && filteredArticles.length !== articles.length && (
-                <span className="ml-2">
-                  (검색 결과:{" "}
-                  <span className="font-semibold text-gray-900">{filteredArticles.length}</span>개)
-                </span>
+              {searchQuery ? (
+                <>
+                  검색 결과: <span className="font-semibold text-gray-900">{totalElements}</span>개의 기사
+                </>
+              ) : (
+                <>
+                  총 <span className="font-semibold text-gray-900">{totalElements}</span>개의 기사
+                </>
               )}
             </div>
             <div className="text-sm text-gray-600">
@@ -425,9 +483,9 @@ export default function ArticlesPage() {
         {/* All Articles Grid */}
         {activeTab === "all" && !isLoading && !error && (
           <>
-            {filteredArticles.length > 0 ? (
+            {articles.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArticles.map((article) => (
+                {articles.map((article) => (
                   <Card
                     key={article.id}
                     className="hover:shadow-lg transition-shadow cursor-pointer relative group"
@@ -486,7 +544,7 @@ export default function ArticlesPage() {
             )}
 
             {/* Pagination */}
-            {filteredArticles.length > 0 && !searchQuery && (
+            {articles.length > 0 && totalPages > 1 && (
               <div className="flex justify-center items-center space-x-2 mt-12">
                 <Button
                   variant="outline"
