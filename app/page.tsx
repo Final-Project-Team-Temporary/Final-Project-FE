@@ -175,8 +175,14 @@ export default function FinancialLearningPlatform() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">읽은 기사</p>
-                    <p className="text-2xl font-bold">{userStats.articlesRead}</p>
-                    <p className="text-sm text-gray-500">개 완독</p>
+                    {isAuthenticated ? (
+                      <>
+                        <p className="text-2xl font-bold">{userStats.articlesRead}</p>
+                        <p className="text-sm text-gray-500">개 완독</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-2">로그인 후 EconoEasy와 함께 학습해봐요</p>
+                    )}
                   </div>
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Newspaper className="w-6 h-6 text-blue-600" />
@@ -190,8 +196,14 @@ export default function FinancialLearningPlatform() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">퀴즈 점수</p>
-                    <p className="text-2xl font-bold">{userStats.quizScore}점</p>
-                    <p className="text-sm text-gray-500">평균 점수</p>
+                    {isAuthenticated ? (
+                      <>
+                        <p className="text-2xl font-bold">{userStats.quizScore}점</p>
+                        <p className="text-sm text-gray-500">평균 점수</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-2">로그인 후 EconoEasy와 함께 학습해봐요</p>
+                    )}
                   </div>
                   <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                     <Target className="w-6 h-6 text-orange-600" />
@@ -205,8 +217,14 @@ export default function FinancialLearningPlatform() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">연속 학습일</p>
-                    <p className="text-2xl font-bold">{learningProgress.streak}일</p>
-                    <p className="text-sm text-gray-500">학습 중</p>
+                    {isAuthenticated ? (
+                      <>
+                        <p className="text-2xl font-bold">{learningProgress.streak}일</p>
+                        <p className="text-sm text-gray-500">학습 중</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-2">로그인 후 EconoEasy와 함께 학습해봐요</p>
+                    )}
                   </div>
                   <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                     <Target className="w-6 h-6 text-purple-600" />
