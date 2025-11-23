@@ -20,10 +20,43 @@ import {
 export const fetchQuiz = async (term?: string): Promise<QuizData> => {
   try {
     const url = term ? `/api/quiz?term=${encodeURIComponent(term)}` : "/api/quiz"
-    const { data } = await apiClient.get<QuizResponse>(url, {
+    const { data } = await apiClient.get<{
+      code: string
+      message: string
+      success: boolean
+      data: {
+        quizzes: Array<{
+          question: string
+          options: string[]
+          explanation: string
+          answer_index: number
+          term?: string
+        }>
+        createdAt: string | null
+        term?: string
+      }
+    }>(url, {
       timeout: 60000, // 60초 타임아웃
     })
-    return data.data
+
+    if (data.success) {
+      // answer_index를 answerIndex로 변환
+      const quizzes = data.data.quizzes.map((q) => ({
+        question: q.question,
+        options: q.options,
+        explanation: q.explanation,
+        answerIndex: q.answer_index,
+        term: q.term,
+      }))
+
+      return {
+        quizzes,
+        generatedAt: data.data.createdAt || new Date().toISOString(),
+        term: data.data.term,
+      }
+    } else {
+      throw new Error(data.message || "퀴즈를 불러오는데 실패했습니다")
+    }
   } catch (error) {
     console.error("Error fetching quiz:", error)
     throw error
@@ -37,10 +70,47 @@ export const fetchQuiz = async (term?: string): Promise<QuizData> => {
  */
 export const createCustomQuiz = async (request: CustomQuizRequest): Promise<QuizData> => {
   try {
-    const { data } = await apiClient.post<QuizResponse>("/api/quiz/mixed", request, {
+    const { data } = await apiClient.post<{
+      code: string
+      message: string
+      success: boolean
+      data: {
+        quizzes: Array<{
+          question: string
+          options: string[]
+          explanation: string
+          answer_index: number
+          term?: string
+        }>
+        createdAt?: string | null
+        terms?: string
+        totalQuestions?: number
+        estimatedTime?: number
+      }
+    }>("/api/quiz/mixed", request, {
       timeout: 60000, // 60초 타임아웃
     })
-    return data.data
+
+    if (data.success) {
+      // answer_index를 answerIndex로 변환
+      const quizzes = data.data.quizzes.map((q) => ({
+        question: q.question,
+        options: q.options,
+        explanation: q.explanation,
+        answerIndex: q.answer_index,
+        term: q.term,
+      }))
+
+      return {
+        quizzes,
+        generatedAt: data.data.createdAt || new Date().toISOString(),
+        terms: data.data.terms,
+        totalQuestions: data.data.totalQuestions,
+        estimatedTime: data.data.estimatedTime,
+      }
+    } else {
+      throw new Error(data.message || "커스텀 퀴즈를 생성하는데 실패했습니다")
+    }
   } catch (error) {
     console.error("Error creating custom quiz:", error)
     throw error
@@ -54,10 +124,47 @@ export const createCustomQuiz = async (request: CustomQuizRequest): Promise<Quiz
  */
 export const createSmartQuiz = async (request: SmartQuizRequest): Promise<QuizData> => {
   try {
-    const { data } = await apiClient.post<QuizResponse>("/api/quiz/smart-mix", request, {
+    const { data } = await apiClient.post<{
+      code: string
+      message: string
+      success: boolean
+      data: {
+        quizzes: Array<{
+          question: string
+          options: string[]
+          explanation: string
+          answer_index: number
+          term?: string
+        }>
+        createdAt?: string | null
+        terms?: string
+        totalQuestions?: number
+        estimatedTime?: number
+      }
+    }>("/api/quiz/smart-mix", request, {
       timeout: 60000, // 60초 타임아웃
     })
-    return data.data
+
+    if (data.success) {
+      // answer_index를 answerIndex로 변환
+      const quizzes = data.data.quizzes.map((q) => ({
+        question: q.question,
+        options: q.options,
+        explanation: q.explanation,
+        answerIndex: q.answer_index,
+        term: q.term,
+      }))
+
+      return {
+        quizzes,
+        generatedAt: data.data.createdAt || new Date().toISOString(),
+        terms: data.data.terms,
+        totalQuestions: data.data.totalQuestions,
+        estimatedTime: data.data.estimatedTime,
+      }
+    } else {
+      throw new Error(data.message || "스마트 퀴즈를 생성하는데 실패했습니다")
+    }
   } catch (error) {
     console.error("Error creating smart quiz:", error)
     throw error
@@ -70,8 +177,64 @@ export const createSmartQuiz = async (request: SmartQuizRequest): Promise<QuizDa
  */
 export const fetchWeeklyChallenge = async (): Promise<WeeklyChallengeResponse> => {
   try {
-    const { data } = await apiClient.get<WeeklyChallengeResponse>("/api/quiz/weekly-challenge")
-    return data
+    const { data } = await apiClient.get<{
+      challenge: {
+        id: number
+        weekStartDate: string
+        weekEndDate: string
+        totalQuestions: number
+        timeLimit: number
+        terms: string
+        isActive: boolean
+      }
+      myAttempt: {
+        score: number
+        totalQuestions: number
+        timeSpent: number
+        accuracy: number
+        rank: number
+        attemptedAt: string
+      } | null
+      quizzes: Array<{
+        question: string
+        options: string[]
+        explanation?: string
+        answer_index: number
+        term?: string
+      }> | null
+      ranking: Array<{
+        rank: number
+        userId: number
+        username: string
+        score: number
+        totalQuestions: number
+        timeSpent: number
+        accuracy: number
+      }>
+      stats: {
+        totalParticipants: number
+        averageScore: number
+      }
+    }>("/api/quiz/weekly-challenge")
+
+    // answer_index를 answerIndex로 변환
+    const quizzes = data.quizzes
+      ? data.quizzes.map((q) => ({
+          question: q.question,
+          options: q.options,
+          explanation: q.explanation,
+          answerIndex: q.answer_index,
+          term: q.term,
+        }))
+      : null
+
+    return {
+      challenge: data.challenge,
+      myAttempt: data.myAttempt,
+      quizzes,
+      ranking: data.ranking,
+      stats: data.stats,
+    }
   } catch (error) {
     console.error("Error fetching weekly challenge:", error)
     throw error

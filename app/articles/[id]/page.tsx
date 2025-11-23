@@ -114,7 +114,7 @@ export default function ArticleDetailPage() {
 
       if (data.success) {
         console.log("기사 상세 API 응답:", data.data)
-        console.log("북마크 상태:", data.data.bookmarked)
+        console.log("북마크 상태:", data.data.isBookmarked)
         setSummaries(data.data.summaries)
         setKeywords(data.data.keywords || [])
         setStocks(data.data.stocks || [])

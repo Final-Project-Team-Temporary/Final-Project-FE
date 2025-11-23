@@ -8,6 +8,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +39,11 @@ import {
   BarChart3,
   FileText,
   Link2,
+  Trash2,
+  Loader2,
 } from "lucide-react"
+import { deleteTerm } from "@/services/terms"
+import { useToast } from "@/hooks/use-toast"
 
 interface TermDetailModalProps {
   isOpen: boolean
@@ -46,10 +60,14 @@ interface TermDetailModalProps {
     relatedTerms: string[]
     difficulty: "beginner" | "intermediate" | "advanced"
   }
+  onDelete?: () => void
 }
 
-export default function TermDetailModal({ isOpen, onClose, term }: TermDetailModalProps) {
+export default function TermDetailModal({ isOpen, onClose, term, onDelete }: TermDetailModalProps) {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // 모의 데이터 - 실제로는 API에서 가져옴
   const sourceArticles = [
@@ -120,6 +138,35 @@ export default function TermDetailModal({ isOpen, onClose, term }: TermDetailMod
     { step: 3, term: "통화정책", status: "next", description: "다음 학습 추천" },
     { step: 4, term: "경제지표", status: "future", description: "심화 학습" },
   ]
+
+  const handleDeleteTerm = async () => {
+    setIsDeleting(true)
+    try {
+      const success = await deleteTerm(Number(term.id))
+      if (success) {
+        toast({
+          title: "용어 삭제 완료",
+          description: `"${term.term}" 용어가 삭제되었습니다.`,
+        })
+        setShowDeleteDialog(false)
+        onClose()
+        if (onDelete) {
+          onDelete()
+        }
+      } else {
+        throw new Error("삭제 실패")
+      }
+    } catch (error) {
+      console.error("Failed to delete term:", error)
+      toast({
+        title: "삭제 실패",
+        description: "용어 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -403,7 +450,13 @@ export default function TermDetailModal({ isOpen, onClose, term }: TermDetailMod
             <Button variant="outline" size="sm">
               수정하기
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
               삭제하기
             </Button>
           </div>
@@ -413,6 +466,39 @@ export default function TermDetailModal({ isOpen, onClose, term }: TermDetailMod
           </div>
         </div>
       </DialogContent>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>용어를 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-semibold text-gray-900">"{term.term}"</span> 용어를 삭제하면
+              저장된 모든 학습 기록이 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTerm}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  삭제 중...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  삭제하기
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }
