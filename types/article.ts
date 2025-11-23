@@ -3,6 +3,8 @@ export interface ArticleSummary {
   id: string
   title: string
   publishedAt: string
+  isBookmarked: boolean
+  bookmarkId: number | null
 }
 
 // 요약 난이도
@@ -62,6 +64,7 @@ export interface ArticleDetailResponse {
     summaries: ArticleDetail[]
     keywords: ArticleKeyword[]
     stocks: ArticleStock[]
+    isBookmarked: boolean
   }
 }
 

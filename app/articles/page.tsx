@@ -6,22 +6,27 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import {
-  Search,
-  BookOpen,
-  Calendar,
-  Loader2,
-  Sparkles,
-} from "lucide-react"
+import { Search, BookOpen, Calendar, Loader2, Sparkles, Bookmark, Heart } from "lucide-react"
 import { ArticleSummary, ArticleListResponse, RecommendedArticle } from "@/types/article"
 import apiClient from "@/lib/axios"
 import Header from "@/components/layout/Header"
 import { fetchRecommendedArticles } from "@/services/articles"
+import {
+  fetchBookmarks,
+  addBookmark,
+  removeBookmark,
+  BookmarkedArticle,
+} from "@/services/bookmarks"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/contexts/AuthContext"
 
-type TabType = "all" | "recommended"
+type TabType = "all" | "recommended" | "bookmarks"
 
 export default function ArticlesPage() {
   const router = useRouter()
+  const { toast } = useToast()
+  const { isAuthenticated } = useAuth()
+
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [articles, setArticles] = useState<ArticleSummary[]>([])
@@ -43,6 +48,19 @@ export default function ArticlesPage() {
   const [isRecommendedLoading, setIsRecommendedLoading] = useState(false)
   const [recommendedError, setRecommendedError] = useState<string | null>(null)
 
+  // 북마크 상태
+  const [bookmarkedArticles, setBookmarkedArticles] = useState<BookmarkedArticle[]>([])
+  const [bookmarksCurrentPage, setBookmarksCurrentPage] = useState(0)
+  const [bookmarksTotalPages, setBookmarksTotalPages] = useState(0)
+  const [bookmarksTotalElements, setBookmarksTotalElements] = useState(0)
+  const [bookmarksHasNext, setBookmarksHasNext] = useState(false)
+  const [bookmarksHasPrevious, setBookmarksHasPrevious] = useState(false)
+  const [isBookmarksLoading, setIsBookmarksLoading] = useState(false)
+  const [bookmarksError, setBookmarksError] = useState<string | null>(null)
+
+  // 북마크 상태 트래킹 (articleId -> isBookmarked)
+  const [bookmarkStates, setBookmarkStates] = useState<Record<string, boolean>>({})
+
   // 백엔드에서 기사 목록 가져오기
   useEffect(() => {
     if (activeTab === "all") {
@@ -56,6 +74,13 @@ export default function ArticlesPage() {
       fetchRecommendedArticlesList(recommendedCurrentPage)
     }
   }, [recommendedCurrentPage, activeTab])
+
+  // 북마크 목록 가져오기
+  useEffect(() => {
+    if (activeTab === "bookmarks" && isAuthenticated) {
+      fetchBookmarksList(bookmarksCurrentPage)
+    }
+  }, [bookmarksCurrentPage, activeTab, isAuthenticated])
 
   const fetchArticles = async (page: number) => {
     setIsLoading(true)
@@ -73,6 +98,13 @@ export default function ArticlesPage() {
         setTotalElements(data.data.totalElements)
         setHasNext(data.data.hasNext)
         setHasPrevious(data.data.hasPrevious)
+
+        // API에서 받은 북마크 상태로 초기화
+        const states: Record<string, boolean> = {}
+        data.data.content.forEach((article) => {
+          states[article.id] = article.isBookmarked
+        })
+        setBookmarkStates((prev) => ({ ...prev, ...states }))
       } else {
         throw new Error(data.message || "기사 목록을 불러오는데 실패했습니다")
       }
@@ -109,11 +141,93 @@ export default function ArticlesPage() {
     }
   }
 
+  const fetchBookmarksList = async (page: number) => {
+    setIsBookmarksLoading(true)
+    setBookmarksError(null)
+
+    try {
+      const response = await fetchBookmarks(page, 30)
+
+      if (response.success) {
+        setBookmarkedArticles(response.data.content)
+        setBookmarksCurrentPage(response.data.number) // Spring의 number 필드 사용
+        setBookmarksTotalPages(response.data.totalPages)
+        setBookmarksTotalElements(response.data.totalElements)
+        setBookmarksHasNext(!response.data.last) // last가 false면 다음 페이지 있음
+        setBookmarksHasPrevious(!response.data.first) // first가 false면 이전 페이지 있음
+
+        // 북마크 상태 업데이트
+        const states: Record<string, boolean> = {}
+        response.data.content.forEach((article) => {
+          states[article.id] = true
+        })
+        setBookmarkStates((prev) => ({ ...prev, ...states }))
+      } else {
+        throw new Error(response.message || "북마크 목록을 불러오는데 실패했습니다")
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookmarks:", err)
+      setBookmarksError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다")
+    } finally {
+      setIsBookmarksLoading(false)
+    }
+  }
+
+  const handleToggleBookmark = async (articleId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation()
+    }
+
+    if (!isAuthenticated) {
+      toast({
+        title: "로그인 필요",
+        description: "북마크 기능을 사용하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
+    const isCurrentlyBookmarked = bookmarkStates[articleId]
+
+    try {
+      if (isCurrentlyBookmarked) {
+        await removeBookmark(articleId)
+        setBookmarkStates((prev) => ({ ...prev, [articleId]: false }))
+        toast({
+          title: "북마크 해제",
+          description: "북마크가 해제되었습니다.",
+        })
+
+        // 북마크 탭이라면 목록에서 제거
+        if (activeTab === "bookmarks") {
+          fetchBookmarksList(bookmarksCurrentPage)
+        }
+      } else {
+        await addBookmark(articleId)
+        setBookmarkStates((prev) => ({ ...prev, [articleId]: true }))
+        toast({
+          title: "북마크 추가",
+          description: "북마크에 추가되었습니다.",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to toggle bookmark:", error)
+      toast({
+        title: "오류 발생",
+        description: "북마크 처리 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handlePageChange = (newPage: number) => {
     if (activeTab === "all") {
       setCurrentPage(newPage)
-    } else {
+    } else if (activeTab === "recommended") {
       setRecommendedCurrentPage(newPage)
+    } else {
+      setBookmarksCurrentPage(newPage)
     }
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -123,6 +237,7 @@ export default function ArticlesPage() {
     setSearchQuery("")
     setCurrentPage(0)
     setRecommendedCurrentPage(0)
+    setBookmarksCurrentPage(0)
   }
 
   const formatDate = (dateString: string) => {
@@ -140,6 +255,11 @@ export default function ArticlesPage() {
   })
 
   const filteredRecommendedArticles = recommendedArticles.filter((article) => {
+    if (!searchQuery) return true
+    return article.title.toLowerCase().includes(searchQuery.toLowerCase())
+  })
+
+  const filteredBookmarkedArticles = bookmarkedArticles.filter((article) => {
     if (!searchQuery) return true
     return article.title.toLowerCase().includes(searchQuery.toLowerCase())
   })
@@ -179,6 +299,15 @@ export default function ArticlesPage() {
             <Sparkles className="w-4 h-4 mr-2" />
             추천 기사
           </Button>
+          {isAuthenticated && (
+            <Button
+              variant={activeTab === "bookmarks" ? "default" : "outline"}
+              onClick={() => handleTabChange("bookmarks")}
+              className="flex items-center"
+            >
+              <Bookmark className="w-4 h-4 mr-2" />내 북마크
+            </Button>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -234,25 +363,58 @@ export default function ArticlesPage() {
           </div>
         )}
 
+        {activeTab === "bookmarks" && (
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-sm text-gray-600">
+              총 <span className="font-semibold text-gray-900">{bookmarksTotalElements}</span>개의
+              북마크
+              {searchQuery && filteredBookmarkedArticles.length !== bookmarkedArticles.length && (
+                <span className="ml-2">
+                  (검색 결과:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {filteredBookmarkedArticles.length}
+                  </span>
+                  개)
+                </span>
+              )}
+            </div>
+            {bookmarksTotalPages > 0 && (
+              <div className="text-sm text-gray-600">
+                페이지 {bookmarksCurrentPage + 1} / {bookmarksTotalPages}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Loading State */}
-        {(isLoading || isRecommendedLoading) && (
+        {(isLoading || isRecommendedLoading || isBookmarksLoading) && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <span className="ml-3 text-gray-600">기사를 불러오는 중...</span>
+            <span className="ml-3 text-gray-600">
+              {activeTab === "bookmarks" ? "북마크를 불러오는 중..." : "기사를 불러오는 중..."}
+            </span>
           </div>
         )}
 
         {/* Error State */}
         {((error && !isLoading && activeTab === "all") ||
-          (recommendedError && !isRecommendedLoading && activeTab === "recommended")) && (
+          (recommendedError && !isRecommendedLoading && activeTab === "recommended") ||
+          (bookmarksError && !isBookmarksLoading && activeTab === "bookmarks")) && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-800 mb-4">{activeTab === "all" ? error : recommendedError}</p>
+            <p className="text-red-800 mb-4">
+              {activeTab === "all"
+                ? error
+                : activeTab === "recommended"
+                  ? recommendedError
+                  : bookmarksError}
+            </p>
             <Button
-              onClick={() =>
-                activeTab === "all"
-                  ? fetchArticles(currentPage)
-                  : fetchRecommendedArticlesList(recommendedCurrentPage)
-              }
+              onClick={() => {
+                if (activeTab === "all") fetchArticles(currentPage)
+                else if (activeTab === "recommended")
+                  fetchRecommendedArticlesList(recommendedCurrentPage)
+                else fetchBookmarksList(bookmarksCurrentPage)
+              }}
               variant="outline"
             >
               다시 시도
@@ -268,13 +430,28 @@ export default function ArticlesPage() {
                 {filteredArticles.map((article) => (
                   <Card
                     key={article.id}
-                    className="hover:shadow-lg transition-shadow cursor-pointer"
+                    className="hover:shadow-lg transition-shadow cursor-pointer relative group"
+                    onClick={() => router.push(`/articles/${article.id}`)}
                   >
+                    {/* Bookmark Button */}
+                    <button
+                      onClick={(e) => handleToggleBookmark(article.id, e)}
+                      className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Bookmark
+                        className={`w-5 h-5 ${
+                          bookmarkStates[article.id]
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-400"
+                        }`}
+                      />
+                    </button>
+
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         {/* Article Content */}
                         <div>
-                          <h3 className="font-semibold text-lg mb-3 line-clamp-3 leading-tight">
+                          <h3 className="font-semibold text-lg mb-3 line-clamp-3 leading-tight pr-8">
                             {article.title}
                           </h3>
                         </div>
@@ -290,7 +467,10 @@ export default function ArticlesPage() {
                         {/* Read Button */}
                         <Button
                           className="w-full bg-blue-900 hover:bg-blue-800"
-                          onClick={() => router.push(`/articles/${article.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/articles/${article.id}`)
+                          }}
                         >
                           기사 읽기
                         </Button>
@@ -449,6 +629,121 @@ export default function ArticlesPage() {
                   variant="outline"
                   onClick={() => handlePageChange(recommendedCurrentPage + 1)}
                   disabled={!recommendedHasNext || isRecommendedLoading}
+                >
+                  다음
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Bookmarked Articles Grid */}
+        {activeTab === "bookmarks" && !isBookmarksLoading && !bookmarksError && (
+          <>
+            {filteredBookmarkedArticles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBookmarkedArticles.map((article) => (
+                  <Card
+                    key={article.id}
+                    className="hover:shadow-lg transition-shadow cursor-pointer relative group"
+                    onClick={() => router.push(`/articles/${article.id}`)}
+                  >
+                    {/* Bookmark Button */}
+                    <button
+                      onClick={(e) => handleToggleBookmark(article.id, e)}
+                      className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all"
+                    >
+                      <Bookmark className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    </button>
+
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {/* Article Content */}
+                        <div>
+                          <h3 className="font-semibold text-lg mb-3 line-clamp-3 leading-tight pr-8">
+                            {article.title}
+                          </h3>
+                        </div>
+
+                        {/* Article Footer */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <span className="flex items-center text-sm text-gray-500">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {formatDate(article.publishedAt)}
+                          </span>
+                          {article.category && (
+                            <Badge variant="secondary" className="text-xs">
+                              {article.category}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Read Button */}
+                        <Button
+                          className="w-full bg-blue-900 hover:bg-blue-800"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/articles/${article.id}`)
+                          }}
+                        >
+                          기사 읽기
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <Bookmark className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg mb-2">아직 북마크한 기사가 없습니다</p>
+                <p className="text-gray-400 text-sm">
+                  관심있는 기사를 북마크하여 나중에 다시 읽어보세요
+                </p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {filteredBookmarkedArticles.length > 0 && !searchQuery && (
+              <div className="flex justify-center items-center space-x-2 mt-12">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePageChange(bookmarksCurrentPage - 1)}
+                  disabled={!bookmarksHasPrevious || isBookmarksLoading}
+                >
+                  이전
+                </Button>
+
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, bookmarksTotalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (bookmarksTotalPages <= 5) {
+                      pageNum = i
+                    } else if (bookmarksCurrentPage < 3) {
+                      pageNum = i
+                    } else if (bookmarksCurrentPage > bookmarksTotalPages - 3) {
+                      pageNum = bookmarksTotalPages - 5 + i
+                    } else {
+                      pageNum = bookmarksCurrentPage - 2 + i
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={bookmarksCurrentPage === pageNum ? "default" : "outline"}
+                        onClick={() => handlePageChange(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum + 1}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => handlePageChange(bookmarksCurrentPage + 1)}
+                  disabled={!bookmarksHasNext || isBookmarksLoading}
                 >
                   다음
                 </Button>

@@ -399,6 +399,34 @@ export default function ArticleOriginalPage() {
         selectedTerm={selectedText}
         explanation={termExplanation}
       />
+
+      {/* AI 설명 로딩 오버레이 */}
+      {isLoadingExplanation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 shadow-2xl max-w-sm mx-4">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
+                <Sparkles className="w-6 h-6 text-yellow-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  AI가 용어를 분석하고 있습니다
+                </h3>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium text-blue-600">{selectedText}</span>에 대한 설명을
+                  생성 중입니다...
+                </p>
+              </div>
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0s" }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

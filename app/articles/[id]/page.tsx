@@ -30,12 +30,15 @@ import {
 } from "@/types/article"
 import { useAuth } from "@/contexts/AuthContext"
 import apiClient from "@/lib/axios"
+import { addBookmark, removeBookmark } from "@/services/bookmarks"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ArticleDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const articleId = params.id
+  const articleId = params.id as string
   const { isAuthenticated, user, logout } = useAuth()
+  const { toast } = useToast()
 
   const [summaries, setSummaries] = useState<ArticleDetail[]>([])
   const [keywords, setKeywords] = useState<ArticleKeyword[]>([])
@@ -44,8 +47,8 @@ export default function ArticleDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedKeyword, setSelectedKeyword] = useState<ArticleKeyword | null>(null)
-
   const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isTogglingBookmark, setIsTogglingBookmark] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -57,6 +60,49 @@ export default function ArticleDetailPage() {
     fetchArticleDetail()
   }, [articleId])
 
+  const handleToggleBookmark = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "로그인 필요",
+        description: "북마크 기능을 사용하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
+    console.log("북마크 토글 - 현재 상태:", isBookmarked)
+    setIsTogglingBookmark(true)
+    try {
+      if (isBookmarked) {
+        console.log("북마크 해제 API 호출:", articleId)
+        await removeBookmark(articleId)
+        setIsBookmarked(false)
+        toast({
+          title: "북마크 해제",
+          description: "북마크가 해제되었습니다.",
+        })
+      } else {
+        console.log("북마크 추가 API 호출:", articleId)
+        await addBookmark(articleId)
+        setIsBookmarked(true)
+        toast({
+          title: "북마크 추가",
+          description: "북마크에 추가되었습니다.",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to toggle bookmark:", error)
+      toast({
+        title: "오류 발생",
+        description: "북마크 처리 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsTogglingBookmark(false)
+    }
+  }
+
   const fetchArticleDetail = async () => {
     setIsLoading(true)
     setError(null)
@@ -67,9 +113,13 @@ export default function ArticleDetailPage() {
       )
 
       if (data.success) {
+        console.log("기사 상세 API 응답:", data.data)
+        console.log("북마크 상태:", data.data.bookmarked)
         setSummaries(data.data.summaries)
         setKeywords(data.data.keywords || [])
         setStocks(data.data.stocks || [])
+        // API에서 받은 북마크 상태 설정
+        setIsBookmarked(data.data.isBookmarked || false)
       } else {
         throw new Error(data.message || "기사를 불러오는데 실패했습니다")
       }
@@ -167,20 +217,7 @@ export default function ArticleDetailPage() {
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsBookmarked(!isBookmarked)}
-                    className={isBookmarked ? "bg-blue-50 text-blue-700" : ""}
-                  >
-                    <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? "fill-current" : ""}`} />
-                    북마크
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    공유
-                  </Button>
-                  <div className="flex items-center space-x-2 text-sm text-gray-700 ml-2">
+                  <div className="flex items-center space-x-2 text-sm text-gray-700 mr-2">
                     <User className="w-4 h-4" />
                     <span>{user?.name || "사용자"}님</span>
                   </div>
@@ -235,6 +272,28 @@ export default function ArticleDetailPage() {
 
                   {/* Title */}
                   <h1 className="text-3xl font-bold text-gray-900 leading-tight">{title}</h1>
+
+                  {/* Action Bar - Bookmark & Share */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleToggleBookmark}
+                      disabled={isTogglingBookmark}
+                      className={`${
+                        isBookmarked
+                          ? "bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? "fill-current" : ""}`} />
+                      {isBookmarked ? "북마크" : "북마크"}
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:bg-gray-50">
+                      <Share2 className="w-4 h-4 mr-2" />
+                      공유
+                    </Button>
+                  </div>
 
                   {/* Difficulty Level Selector */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 space-y-4">
@@ -322,9 +381,7 @@ export default function ArticleDetailPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <Tag className="w-4 h-4 text-orange-600" />
-                              <span className="font-semibold text-gray-900">
-                                {keyword.term}
-                              </span>
+                              <span className="font-semibold text-gray-900">{keyword.term}</span>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-600 transition-colors" />
                           </div>
@@ -496,12 +553,7 @@ export default function ArticleDetailPage() {
                 onClick={() => setSelectedKeyword(null)}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -518,16 +570,10 @@ export default function ArticleDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                onClick={() => setSelectedKeyword(null)}
-                variant="outline"
-                className="flex-1"
-              >
+              <Button onClick={() => setSelectedKeyword(null)} variant="outline" className="flex-1">
                 닫기
               </Button>
-              <Button className="flex-1 bg-orange-600 hover:bg-orange-700">
-                용어집에 저장
-              </Button>
+              <Button className="flex-1 bg-orange-600 hover:bg-orange-700">용어집에 저장</Button>
             </div>
           </div>
         </div>
