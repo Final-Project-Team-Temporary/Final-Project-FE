@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import Header from "@/components/layout/Header"
 import { Trophy, Star, RotateCcw, Home } from "lucide-react"
-import { QuizData } from "@/lib/types"
+import { QuizData, QuizResultItem } from "@/lib/types"
+import { saveQuizResult } from "@/services/quiz"
 
 interface QuizResult {
   score: number
@@ -27,6 +28,7 @@ export default function QuizResultPage() {
   const router = useRouter()
   const [result, setResult] = useState<QuizResult | null>(null)
   const [termStats, setTermStats] = useState<TermStat[]>([])
+  const hasSubmittedRef = useRef(false)
 
   useEffect(() => {
     const savedResult = sessionStorage.getItem("quizResult")
@@ -38,6 +40,12 @@ export default function QuizResultPage() {
         // 용어별 통계 계산
         if (data.quizData?.quizzes && Array.isArray(data.quizData.quizzes)) {
           calculateTermStats(data)
+
+          // 퀴즈 결과 API 저장 (한 번만 실행)
+          if (!hasSubmittedRef.current) {
+            hasSubmittedRef.current = true
+            submitQuizResult(data)
+          }
         }
       } catch (error) {
         console.error("Failed to parse quiz result:", error)
@@ -47,6 +55,23 @@ export default function QuizResultPage() {
       router.push("/quiz")
     }
   }, [router])
+
+  const submitQuizResult = async (data: QuizResult) => {
+    try {
+      const results: QuizResultItem[] = data.quizData.quizzes.map((quiz, index) => ({
+        question: quiz.question,
+        options: quiz.options,
+        answerIndex: quiz.answerIndex,
+        userAnswerIndex: data.userAnswers[index],
+        explanation: quiz.explanation,
+        term: quiz.term || "기타",
+      }))
+
+      await saveQuizResult({ results })
+    } catch (error) {
+      console.error("Failed to save quiz result:", error)
+    }
+  }
 
   const calculateTermStats = (data: QuizResult) => {
     const statsMap = new Map<string, { correct: number; total: number }>()

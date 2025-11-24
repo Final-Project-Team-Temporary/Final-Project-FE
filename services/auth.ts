@@ -1,40 +1,27 @@
-import { LoginCredentials, SignupData, User, ApiResponse } from "@/lib/types"
+import { LoginCredentials, SignupData, User, ApiResponse, LoginResponse } from "@/lib/types"
+import apiClient from "@/lib/axios"
 
 // 로그인 API 호출
-export async function loginUser(credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> {
+export async function loginUser(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
-    // 실제 API 호출 대신 모의 응답
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 네트워크 지연 시뮬레이션
-    
-    if (credentials.email === "test@example.com" && credentials.password === "password") {
-      return {
-        success: true,
-        data: {
-          user: {
-            id: "1",
-            email: credentials.email,
-            name: "김투자",
-            age: "30s",
-            investmentExperience: "intermediate",
-            riskTolerance: "moderate",
-            investmentGoals: ["장기 자산 증식", "은퇴 자금 마련"],
-            interests: ["ETF", "주식", "부동산"],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          token: "mock-jwt-token"
-        }
-      }
-    } else {
-      return {
-        success: false,
-        error: "이메일 또는 비밀번호가 올바르지 않습니다."
-      }
+    const response = await apiClient.post<LoginResponse>("/api/auth/login", credentials)
+    return response.data
+  } catch (error: any) {
+    // axios 에러 처리
+    if (error.response?.data) {
+      return error.response.data as LoginResponse
     }
-  } catch (error) {
     return {
+      code: "E001",
+      message: "로그인 중 오류가 발생했습니다.",
       success: false,
-      error: "로그인 중 오류가 발생했습니다."
+      data: {
+        accessToken: "",
+        refreshToken: "",
+        userStatus: "INACTIVE",
+        loginStatus: "EXISTING_USER",
+        userName: "",
+      },
     }
   }
 }

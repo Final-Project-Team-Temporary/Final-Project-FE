@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { TrendingUp, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { TrendingUp, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { loginUser } from "@/services/auth"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -27,11 +32,36 @@ export default function LoginPage() {
     }))
   }
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // 로그인 로직 구현
-    console.log("로그인 시도:", formData)
-    router.push("/dashboard")
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await loginUser(formData)
+
+      if (response.success) {
+        // 토큰 저장
+        localStorage.setItem("authToken", response.data.accessToken)
+        localStorage.setItem("refreshToken", response.data.refreshToken)
+
+        // AuthContext에 사용자 정보 저장
+        login(response.data.accessToken, {
+          id: "", // 백엔드에서 제공하지 않으면 빈 문자열
+          email: formData.email,
+          name: response.data.userName,
+        })
+
+        // 홈으로 이동
+        router.push("/")
+      } else {
+        setError(response.message || "로그인에 실패했습니다.")
+      }
+    } catch (err) {
+      setError("로그인 중 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleKakaoLogin = () => {
@@ -91,6 +121,13 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* 에러 메시지 */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* 이메일 로그인 폼 */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
@@ -140,8 +177,19 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-900 hover:bg-blue-800 h-12">
-                로그인
+              <Button
+                type="submit"
+                className="w-full bg-blue-900 hover:bg-blue-800 h-12"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    로그인 중...
+                  </>
+                ) : (
+                  "로그인"
+                )}
               </Button>
             </form>
 

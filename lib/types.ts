@@ -127,6 +127,20 @@ export interface LoginCredentials {
   password: string
 }
 
+// 백엔드 로그인 응답 타입
+export interface LoginResponse {
+  code: string
+  message: string
+  success: boolean
+  data: {
+    accessToken: string
+    refreshToken: string
+    userStatus: "ACTIVE" | "INACTIVE" | "SUSPENDED"
+    loginStatus: "EXISTING_USER" | "NEW_USER"
+    userName: string
+  }
+}
+
 export interface SignupData {
   email: string
   password: string
@@ -264,10 +278,17 @@ export interface ChallengeSubmitRequest {
   answers: number[]
 }
 
-export interface QuizResultRequest {
+export interface QuizResultItem {
+  question: string
+  options: string[]
+  answerIndex: number
+  userAnswerIndex: number
+  explanation?: string
   term: string
-  score: number
-  totalQuestions: number
+}
+
+export interface QuizResultRequest {
+  results: QuizResultItem[]
 }
 
 export interface LearningStats {
