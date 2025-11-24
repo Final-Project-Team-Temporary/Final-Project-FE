@@ -29,7 +29,7 @@ export const fetchQuiz = async (term?: string): Promise<QuizData> => {
           question: string
           options: string[]
           explanation: string
-          answer_index: number
+          answerIndex: number
           term?: string
         }>
         createdAt: string | null
@@ -40,12 +40,11 @@ export const fetchQuiz = async (term?: string): Promise<QuizData> => {
     })
 
     if (data.success) {
-      // answer_index를 answerIndex로 변환
       const quizzes = data.data.quizzes.map((q) => ({
         question: q.question,
         options: q.options,
         explanation: q.explanation,
-        answerIndex: q.answer_index,
+        answerIndex: q.answerIndex,
         term: q.term,
       }))
 
@@ -79,7 +78,7 @@ export const createCustomQuiz = async (request: CustomQuizRequest): Promise<Quiz
           question: string
           options: string[]
           explanation: string
-          answer_index: number
+          answerIndex: number
           term?: string
         }>
         createdAt?: string | null
@@ -92,12 +91,11 @@ export const createCustomQuiz = async (request: CustomQuizRequest): Promise<Quiz
     })
 
     if (data.success) {
-      // answer_index를 answerIndex로 변환
       const quizzes = data.data.quizzes.map((q) => ({
         question: q.question,
         options: q.options,
         explanation: q.explanation,
-        answerIndex: q.answer_index,
+        answerIndex: q.answerIndex,
         term: q.term,
       }))
 
@@ -133,7 +131,7 @@ export const createSmartQuiz = async (request: SmartQuizRequest): Promise<QuizDa
           question: string
           options: string[]
           explanation: string
-          answer_index: number
+          answerIndex: number
           term?: string
         }>
         createdAt?: string | null
@@ -146,12 +144,11 @@ export const createSmartQuiz = async (request: SmartQuizRequest): Promise<QuizDa
     })
 
     if (data.success) {
-      // answer_index를 answerIndex로 변환
       const quizzes = data.data.quizzes.map((q) => ({
         question: q.question,
         options: q.options,
         explanation: q.explanation,
-        answerIndex: q.answer_index,
+        answerIndex: q.answerIndex,
         term: q.term,
       }))
 
@@ -199,7 +196,7 @@ export const fetchWeeklyChallenge = async (): Promise<WeeklyChallengeResponse> =
         question: string
         options: string[]
         explanation?: string
-        answer_index: number
+        answerIndex: number
         term?: string
       }> | null
       ranking: Array<{
@@ -217,13 +214,12 @@ export const fetchWeeklyChallenge = async (): Promise<WeeklyChallengeResponse> =
       }
     }>("/api/quiz/weekly-challenge")
 
-    // answer_index를 answerIndex로 변환
     const quizzes = data.quizzes
       ? data.quizzes.map((q) => ({
           question: q.question,
           options: q.options,
           explanation: q.explanation,
-          answerIndex: q.answer_index,
+          answerIndex: q.answerIndex,
           term: q.term,
         }))
       : null
