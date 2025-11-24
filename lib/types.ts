@@ -278,10 +278,17 @@ export interface ChallengeSubmitRequest {
   answers: number[]
 }
 
-export interface QuizResultRequest {
+export interface QuizResultItem {
+  question: string
+  options: string[]
+  answerIndex: number
+  userAnswerIndex: number
+  explanation?: string
   term: string
-  score: number
-  totalQuestions: number
+}
+
+export interface QuizResultRequest {
+  results: QuizResultItem[]
 }
 
 export interface LearningStats {
