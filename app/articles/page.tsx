@@ -331,9 +331,7 @@ export default function ArticlesPage() {
             <BookOpen className="w-6 h-6 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">금융 학습 기사</h1>
           </div>
-          <p className="text-gray-600 max-w-2xl">
-            전문가가 엄선한 금융 투자 기사들을 통해 체계적으로 학습하세요.
-          </p>
+          <p className="text-gray-600 max-w-2xl">금융 투자 기사들을 통해 체계적으로 학습하세요.</p>
         </div>
 
         {/* Tabs */}

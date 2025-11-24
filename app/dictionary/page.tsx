@@ -434,6 +434,14 @@ export default function DictionaryPage() {
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
               term={selectedTerm}
+              onDelete={() => {
+                // 삭제 후 검색 중이면 검색 재실행, 아니면 목록 새로고침
+                if (searchKeyword.trim()) {
+                  handleSearch(searchKeyword, currentPage)
+                } else {
+                  loadUserTerms()
+                }
+              }}
             />
           )}
         </div>
