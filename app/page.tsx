@@ -24,6 +24,7 @@ import { VideoRecommendation } from "@/types/video"
 import { fetchRecommendedVideos, getYoutubeThumbnail } from "@/services/videos"
 import { RecommendedArticle } from "@/types/article"
 import { fetchRecommendedArticles } from "@/services/articles"
+import { fetchLearningStreak, LearningStats } from "@/services/learning"
 
 export default function FinancialLearningPlatform() {
   const router = useRouter()
@@ -44,25 +45,16 @@ export default function FinancialLearningPlatform() {
   const [articlesLoading, setArticlesLoading] = useState(false)
   const [articlesError, setArticlesError] = useState<string | null>(null)
 
-  // 사용자 통계
-  const userStats = {
-    articlesRead: 28,
-    badges: 8,
-    quizScore: 85,
-    streak: 15,
-  }
+  // 학습 통계 상태
+  const [learningStats, setLearningStats] = useState<LearningStats>({
+    consecutiveDays: 0,
+    quizCount: 0,
+    articleCount: 0,
+  })
 
   const userPreferences = {
     keywords: ["ETF", "배당주", "부동산", "경제지표"],
     difficultyLevel: "intermediate",
-  }
-
-  const learningProgress = {
-    completedCourses: 12,
-    totalCourses: 20,
-    currentLevel: "Intermediate",
-    badges: 8,
-    streak: 15,
   }
 
   // 유튜브 영상 추천 API 호출
@@ -117,6 +109,28 @@ export default function FinancialLearningPlatform() {
     loadRecommendedArticles()
   }, [])
 
+  // 학습 통계 API 호출
+  useEffect(() => {
+    const loadLearningStats = async () => {
+      if (!isAuthenticated) return
+
+      try {
+        const response = await fetchLearningStreak()
+        if (response.success) {
+          setLearningStats({
+            consecutiveDays: response.data.consecutiveDays,
+            quizCount: response.data.quizCount,
+            articleCount: response.data.articleCount,
+          })
+        }
+      } catch (error) {
+        console.error("Failed to load learning stats:", error)
+      }
+    }
+
+    loadLearningStats()
+  }, [isAuthenticated])
+
   const formatArticleDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -163,7 +177,7 @@ export default function FinancialLearningPlatform() {
               </div>
               <div className="text-right">
                 <div className="text-sm text-blue-200">연속 학습일</div>
-                <div className="text-3xl font-bold">{learningProgress.streak}일</div>
+                <div className="text-3xl font-bold">{learningStats.consecutiveDays}일</div>
               </div>
             </div>
           </div>
@@ -177,7 +191,7 @@ export default function FinancialLearningPlatform() {
                     <p className="text-sm text-gray-600">읽은 기사</p>
                     {isAuthenticated ? (
                       <>
-                        <p className="text-2xl font-bold">{userStats.articlesRead}</p>
+                        <p className="text-2xl font-bold">{learningStats.articleCount}</p>
                         <p className="text-sm text-gray-500">개 완독</p>
                       </>
                     ) : (
@@ -195,11 +209,11 @@ export default function FinancialLearningPlatform() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">퀴즈 점수</p>
+                    <p className="text-sm text-gray-600">푼 퀴즈</p>
                     {isAuthenticated ? (
                       <>
-                        <p className="text-2xl font-bold">{userStats.quizScore}점</p>
-                        <p className="text-sm text-gray-500">평균 점수</p>
+                        <p className="text-2xl font-bold">{learningStats.quizCount}</p>
+                        <p className="text-sm text-gray-500">개 완료</p>
                       </>
                     ) : (
                       <p className="text-sm text-gray-500 mt-2">로그인 후 EconoEasy와 함께 학습해봐요</p>
@@ -219,7 +233,7 @@ export default function FinancialLearningPlatform() {
                     <p className="text-sm text-gray-600">연속 학습일</p>
                     {isAuthenticated ? (
                       <>
-                        <p className="text-2xl font-bold">{learningProgress.streak}일</p>
+                        <p className="text-2xl font-bold">{learningStats.consecutiveDays}일</p>
                         <p className="text-sm text-gray-500">학습 중</p>
                       </>
                     ) : (
