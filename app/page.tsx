@@ -25,6 +25,7 @@ import { fetchRecommendedVideos, getYoutubeThumbnail } from "@/services/videos"
 import { RecommendedArticle } from "@/types/article"
 import { fetchRecommendedArticles } from "@/services/articles"
 import { fetchLearningStreak, LearningStats } from "@/services/learning"
+import RecentArticlesPanel from "@/components/RecentArticlesPanel"
 
 export default function FinancialLearningPlatform() {
   const router = useRouter()
@@ -155,6 +156,9 @@ export default function FinancialLearningPlatform() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
+
+      {/* 최근 읽은 기사 패널 */}
+      <RecentArticlesPanel />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

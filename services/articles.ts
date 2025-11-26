@@ -1,4 +1,4 @@
-import { Article, ArticleFilters, ApiResponse } from "@/lib/types"
+import { Article, ArticleFilters, ApiResponse, RecentlyViewedArticlesResponse } from "@/lib/types"
 import { RecommendedArticlesResponse } from "@/types/article"
 import apiClient from "@/lib/axios"
 
@@ -255,6 +255,21 @@ export async function searchArticles(query: string): Promise<ApiResponse<Article
 export async function fetchRecommendedArticles(page: number = 0, size: number = 10) {
   const { data } = await apiClient.get<RecommendedArticlesResponse>(
     `/api/recommends/articles?page=${page}&size=${size}`
+  )
+  return data
+}
+
+// 최근 읽은 기사 가져오기 (백엔드 API)
+export async function fetchRecentlyViewedArticles() {
+  // 오늘 날짜를 yyyy-MM-dd 형식으로 생성
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  const dateString = `${year}-${month}-${day}`
+
+  const { data } = await apiClient.get<RecentlyViewedArticlesResponse>(
+    `/api/articles/recently-viewed?date=${dateString}`
   )
   return data
 }
