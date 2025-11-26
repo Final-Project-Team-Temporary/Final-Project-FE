@@ -12,38 +12,69 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Eye, EyeOff, ArrowLeft, Check, User, Target, BookOpen } from "lucide-react"
+import { AgeRange, InvestmentLevel, RiskTolerance, InvestmentGoal, Category } from "@/lib/types"
+import { registerUser, completeRegistration } from "@/services/auth"
 
 export default function SignupPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [accessToken, setAccessToken] = useState<string>("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string>("")
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     confirmPassword: "",
     name: "",
-    age: "",
-    investmentExperience: "",
-    riskTolerance: "",
-    investmentGoals: [] as string[],
-    interests: [] as string[],
+    ageRange: "" as AgeRange | "",
+    investmentLevel: "" as InvestmentLevel | "",
+    riskTolerance: "" as RiskTolerance | "",
+    investmentGoal: "" as InvestmentGoal | "",
+    interestCategories: [] as Category[],
   })
 
   const totalSteps = 4
   const progressPercentage = (currentStep / totalSteps) * 100
 
-  const investmentGoalOptions = [
-    "장기 자산 증식",
-    "단기 수익 창출",
-    "안정적인 배당 수익",
-    "인플레이션 헤지",
-    "은퇴 자금 마련",
-    "자녀 교육비 준비",
+  const ageRangeOptions = [
+    { value: AgeRange.TWENTIES, label: "20대" },
+    { value: AgeRange.THIRTIES, label: "30대" },
+    { value: AgeRange.FOURTIES, label: "40대" },
+    { value: AgeRange.FIFTIES, label: "50대" },
+    { value: AgeRange.SIXTY_PLUS, label: "60대 이상" },
   ]
 
-  const interestOptions = ["국내 주식", "해외 주식", "ETF", "채권", "부동산", "암호화폐", "원자재", "ESG 투자"]
+  const investmentLevelOptions = [
+    { value: InvestmentLevel.BEGINNER, label: "초보자 (1년 미만)" },
+    { value: InvestmentLevel.INTERMEDIATE, label: "중급자 (1-3년)" },
+    { value: InvestmentLevel.ADVANCED, label: "고급자 (3년 이상)" },
+  ]
+
+  const riskToleranceOptions = [
+    { value: RiskTolerance.STABLE, label: "안정형 (원금 보존 중시)" },
+    { value: RiskTolerance.MODERATE, label: "중립형 (적당한 위험 감수)" },
+    { value: RiskTolerance.AGGRESSIVE, label: "적극형 (높은 수익 추구)" },
+  ]
+
+  const investmentGoalOptions = [
+    { value: InvestmentGoal.LONG_TERM_GROWTH, label: "장기 자산 증식" },
+    { value: InvestmentGoal.SHORT_TERM_PROFIT, label: "단기 수익 창출" },
+    { value: InvestmentGoal.STABLE_INCOME, label: "안정적인 배당 수익" },
+    { value: InvestmentGoal.INFLATION_HEDGE, label: "인플레이션 헤지" },
+    { value: InvestmentGoal.RETIREMENT_PREP, label: "은퇴 자금 마련" },
+    { value: InvestmentGoal.EDUCATION_FUND, label: "자녀 교육비 준비" },
+  ]
+
+  const categoryOptions = [
+    { value: Category.BATTERY, label: "배터리" },
+    { value: Category.MEDICINE, label: "의약품" },
+    { value: Category.STEEL, label: "철강" },
+    { value: Category.GOLD, label: "금" },
+    { value: Category.GENERAL, label: "일반" },
+  ]
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -53,10 +84,19 @@ export default function SignupPage() {
     }))
   }
 
-  const handleMultiSelect = (field: "investmentGoals" | "interests", value: string) => {
+  const handleInvestmentGoalSelect = (value: InvestmentGoal) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].includes(value) ? prev[field].filter((item) => item !== value) : [...prev[field], value],
+      investmentGoal: value,
+    }))
+  }
+
+  const handleCategorySelect = (value: Category) => {
+    setFormData((prev) => ({
+      ...prev,
+      interestCategories: prev.interestCategories.includes(value)
+        ? prev.interestCategories.filter((item) => item !== value)
+        : [...prev.interestCategories, value],
     }))
   }
 
@@ -65,8 +105,39 @@ export default function SignupPage() {
     router.push("/dashboard")
   }
 
-  const handleNextStep = () => {
-    if (currentStep < totalSteps) {
+  const handleNextStep = async () => {
+    if (currentStep === 1) {
+      // Step 1: 기본 정보 입력 후 register API 호출
+      if (!formData.email || !formData.password || !formData.confirmPassword || !formData.name) {
+        setError("모든 필드를 입력해주세요.")
+        return
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError("비밀번호가 일치하지 않습니다.")
+        return
+      }
+
+      setLoading(true)
+      setError("")
+
+      const response = await registerUser({
+        username: formData.name,
+        password: formData.password,
+        email: formData.email,
+      })
+
+      setLoading(false)
+
+      if (!response.success) {
+        setError(response.message || "회원가입 중 오류가 발생했습니다.")
+        return
+      }
+
+      // accessToken 저장
+      setAccessToken(response.data.accessToken)
+      setCurrentStep(currentStep + 1)
+    } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -77,9 +148,42 @@ export default function SignupPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("회원가입 완료:", formData)
+
+    // 필수 필드 검증
+    if (!formData.ageRange || !formData.investmentLevel || !formData.riskTolerance || !formData.investmentGoal) {
+      setError("모든 필드를 입력해주세요.")
+      return
+    }
+
+    if (formData.interestCategories.length === 0) {
+      setError("최소 하나의 관심 분야를 선택해주세요.")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+
+    const response = await completeRegistration(
+      {
+        ageRange: formData.ageRange as AgeRange,
+        investmentLevel: formData.investmentLevel as InvestmentLevel,
+        riskTolerance: formData.riskTolerance as RiskTolerance,
+        investmentGoal: formData.investmentGoal as InvestmentGoal,
+        interestCategories: formData.interestCategories,
+      },
+      accessToken
+    )
+
+    setLoading(false)
+
+    if (!response.success) {
+      setError(response.message || "추가 정보 등록 중 오류가 발생했습니다.")
+      return
+    }
+
+    // 회원가입 완료 후 대시보드로 이동
     router.push("/dashboard")
   }
 
@@ -205,38 +309,40 @@ export default function SignupPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="age">연령대</Label>
+                <Label htmlFor="ageRange">연령대</Label>
                 <select
-                  id="age"
-                  name="age"
-                  value={formData.age}
+                  id="ageRange"
+                  name="ageRange"
+                  value={formData.ageRange}
                   onChange={handleInputChange}
                   required
                   className="w-full h-12 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">선택해주세요</option>
-                  <option value="20s">20대</option>
-                  <option value="30s">30대</option>
-                  <option value="40s">40대</option>
-                  <option value="50s">50대</option>
-                  <option value="60s">60대 이상</option>
+                  {ageRangeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="investmentExperience">투자 경험</Label>
+                <Label htmlFor="investmentLevel">투자 경험</Label>
                 <select
-                  id="investmentExperience"
-                  name="investmentExperience"
-                  value={formData.investmentExperience}
+                  id="investmentLevel"
+                  name="investmentLevel"
+                  value={formData.investmentLevel}
                   onChange={handleInputChange}
                   required
                   className="w-full h-12 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">선택해주세요</option>
-                  <option value="beginner">초보자 (1년 미만)</option>
-                  <option value="intermediate">중급자 (1-3년)</option>
-                  <option value="advanced">고급자 (3년 이상)</option>
+                  {investmentLevelOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -251,9 +357,11 @@ export default function SignupPage() {
                   className="w-full h-12 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">선택해주세요</option>
-                  <option value="conservative">안정형 (원금 보존 중시)</option>
-                  <option value="moderate">중립형 (적당한 위험 감수)</option>
-                  <option value="aggressive">적극형 (높은 수익 추구)</option>
+                  {riskToleranceOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -266,24 +374,24 @@ export default function SignupPage() {
             <div className="text-center mb-6">
               <Target className="w-12 h-12 text-blue-600 mx-auto mb-2" />
               <h3 className="text-lg font-semibold">투자 목표</h3>
-              <p className="text-gray-600 text-sm">투자 목표를 선택해주세요 (복수 선택 가능)</p>
+              <p className="text-gray-600 text-sm">가장 중요한 투자 목표를 선택해주세요</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {investmentGoalOptions.map((goal) => (
+              {investmentGoalOptions.map((option) => (
                 <button
-                  key={goal}
+                  key={option.value}
                   type="button"
-                  onClick={() => handleMultiSelect("investmentGoals", goal)}
+                  onClick={() => handleInvestmentGoalSelect(option.value)}
                   className={`p-3 text-sm border rounded-lg transition-colors ${
-                    formData.investmentGoals.includes(goal)
+                    formData.investmentGoal === option.value
                       ? "bg-blue-100 border-blue-500 text-blue-700"
                       : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{goal}</span>
-                    {formData.investmentGoals.includes(goal) && <Check className="w-4 h-4 text-blue-600" />}
+                    <span>{option.label}</span>
+                    {formData.investmentGoal === option.value && <Check className="w-4 h-4 text-blue-600" />}
                   </div>
                 </button>
               ))}
@@ -296,25 +404,25 @@ export default function SignupPage() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <BookOpen className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-              <h3 className="text-lg font-semibold">관심 분야</h3>
-              <p className="text-gray-600 text-sm">관심 있는 투자 분야를 선택해주세요 (복수 선택 가능)</p>
+              <h3 className="text-lg font-semibold">관심 카테고리</h3>
+              <p className="text-gray-600 text-sm">관심 있는 투자 카테고리를 선택해주세요 (복수 선택 가능)</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {interestOptions.map((interest) => (
+              {categoryOptions.map((option) => (
                 <button
-                  key={interest}
+                  key={option.value}
                   type="button"
-                  onClick={() => handleMultiSelect("interests", interest)}
+                  onClick={() => handleCategorySelect(option.value)}
                   className={`p-3 text-sm border rounded-lg transition-colors ${
-                    formData.interests.includes(interest)
+                    formData.interestCategories.includes(option.value)
                       ? "bg-blue-100 border-blue-500 text-blue-700"
                       : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{interest}</span>
-                    {formData.interests.includes(interest) && <Check className="w-4 h-4 text-blue-600" />}
+                    <span>{option.label}</span>
+                    {formData.interestCategories.includes(option.value) && <Check className="w-4 h-4 text-blue-600" />}
                   </div>
                 </button>
               ))}
@@ -327,30 +435,27 @@ export default function SignupPage() {
                   <span className="text-gray-600">이름:</span> {formData.name}
                 </div>
                 <div>
-                  <span className="text-gray-600">연령대:</span> {formData.age}
+                  <span className="text-gray-600">연령대:</span>{" "}
+                  {ageRangeOptions.find((opt) => opt.value === formData.ageRange)?.label}
                 </div>
                 <div>
-                  <span className="text-gray-600">투자 경험:</span> {formData.investmentExperience}
+                  <span className="text-gray-600">투자 경험:</span>{" "}
+                  {investmentLevelOptions.find((opt) => opt.value === formData.investmentLevel)?.label}
                 </div>
                 <div>
-                  <span className="text-gray-600">위험 성향:</span> {formData.riskTolerance}
+                  <span className="text-gray-600">위험 성향:</span>{" "}
+                  {riskToleranceOptions.find((opt) => opt.value === formData.riskTolerance)?.label}
                 </div>
                 <div>
-                  <span className="text-gray-600">투자 목표:</span>
+                  <span className="text-gray-600">투자 목표:</span>{" "}
+                  {investmentGoalOptions.find((opt) => opt.value === formData.investmentGoal)?.label}
+                </div>
+                <div>
+                  <span className="text-gray-600">관심 카테고리:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.investmentGoals.map((goal) => (
-                      <Badge key={goal} variant="secondary" className="text-xs">
-                        {goal}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">관심 분야:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.interests.map((interest) => (
-                      <Badge key={interest} variant="secondary" className="text-xs">
-                        {interest}
+                    {formData.interestCategories.map((category) => (
+                      <Badge key={category} variant="secondary" className="text-xs">
+                        {categoryOptions.find((opt) => opt.value === category)?.label}
                       </Badge>
                     ))}
                   </div>
@@ -405,9 +510,15 @@ export default function SignupPage() {
             <form onSubmit={currentStep === totalSteps ? handleSubmit : (e) => e.preventDefault()}>
               {renderStepContent()}
 
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               <div className="flex justify-between mt-8">
                 {currentStep > 1 ? (
-                  <Button type="button" variant="outline" onClick={handlePrevStep}>
+                  <Button type="button" variant="outline" onClick={handlePrevStep} disabled={loading}>
                     이전
                   </Button>
                 ) : (
@@ -415,12 +526,17 @@ export default function SignupPage() {
                 )}
 
                 {currentStep < totalSteps ? (
-                  <Button type="button" onClick={handleNextStep} className="bg-blue-900 hover:bg-blue-800">
-                    다음
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="bg-blue-900 hover:bg-blue-800"
+                    disabled={loading}
+                  >
+                    {loading ? "처리 중..." : "다음"}
                   </Button>
                 ) : (
-                  <Button type="submit" className="bg-blue-900 hover:bg-blue-800">
-                    가입 완료
+                  <Button type="submit" className="bg-blue-900 hover:bg-blue-800" disabled={loading}>
+                    {loading ? "처리 중..." : "가입 완료"}
                   </Button>
                 )}
               </div>

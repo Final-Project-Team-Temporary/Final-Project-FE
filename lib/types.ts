@@ -311,3 +311,76 @@ export interface RecentlyViewedArticlesResponse {
   success: boolean
   data: RecentlyViewedArticle[]
 }
+
+// 회원가입 관련 Enum 타입
+export enum AgeRange {
+  TWENTIES = "TWENTIES",
+  THIRTIES = "THIRTIES",
+  FOURTIES = "FOURTIES",
+  FIFTIES = "FIFTIES",
+  SIXTY_PLUS = "SIXTY_PLUS"
+}
+
+export enum InvestmentLevel {
+  BEGINNER = "BEGINNER",
+  INTERMEDIATE = "INTERMEDIATE",
+  ADVANCED = "ADVANCED"
+}
+
+export enum RiskTolerance {
+  STABLE = "STABLE",
+  MODERATE = "MODERATE",
+  AGGRESSIVE = "AGGRESSIVE"
+}
+
+export enum InvestmentGoal {
+  LONG_TERM_GROWTH = "LONG_TERM_GROWTH",
+  SHORT_TERM_PROFIT = "SHORT_TERM_PROFIT",
+  STABLE_INCOME = "STABLE_INCOME",
+  INFLATION_HEDGE = "INFLATION_HEDGE",
+  RETIREMENT_PREP = "RETIREMENT_PREP",
+  EDUCATION_FUND = "EDUCATION_FUND"
+}
+
+export enum Category {
+  BATTERY = "BATTERY",
+  MEDICINE = "MEDICINE",
+  STEEL = "STEEL",
+  GOLD = "GOLD",
+  GENERAL = "GENERAL"
+}
+
+// 회원가입 API 요청/응답 타입
+export interface RegisterRequest {
+  username: string
+  password: string
+  email: string
+}
+
+export interface RegisterResponse {
+  code: string
+  message: string
+  success: boolean
+  data: {
+    accessToken: string
+    refreshToken: string
+    userStatus: "PENDING" | "ACTIVE" | "INACTIVE"
+    loginStatus: "NEW_USER" | "EXISTING_USER"
+    userName: string
+  }
+}
+
+export interface CompleteRegistrationRequest {
+  ageRange: AgeRange
+  investmentLevel: InvestmentLevel
+  riskTolerance: RiskTolerance
+  investmentGoal: InvestmentGoal
+  interestCategories: Category[]
+}
+
+export interface CompleteRegistrationResponse {
+  code: string
+  message: string
+  success: boolean
+  data?: any
+}

@@ -1,4 +1,4 @@
-import { LoginCredentials, SignupData, User, ApiResponse, LoginResponse } from "@/lib/types"
+import { LoginCredentials, SignupData, User, ApiResponse, LoginResponse, RegisterRequest, RegisterResponse, CompleteRegistrationRequest, CompleteRegistrationResponse } from "@/lib/types"
 import apiClient from "@/lib/axios"
 
 // 로그인 API 호출
@@ -31,7 +31,7 @@ export async function signupUser(signupData: SignupData): Promise<ApiResponse<{ 
   try {
     // 실제 API 호출 대신 모의 응답
     await new Promise(resolve => setTimeout(resolve, 1500)) // 네트워크 지연 시뮬레이션
-    
+
     // 비밀번호 확인
     if (signupData.password !== signupData.confirmPassword) {
       return {
@@ -39,7 +39,7 @@ export async function signupUser(signupData: SignupData): Promise<ApiResponse<{ 
         error: "비밀번호가 일치하지 않습니다."
       }
     }
-    
+
     // 이메일 중복 체크 (모의)
     if (signupData.email === "existing@example.com") {
       return {
@@ -47,7 +47,7 @@ export async function signupUser(signupData: SignupData): Promise<ApiResponse<{ 
         error: "이미 존재하는 이메일입니다."
       }
     }
-    
+
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       email: signupData.email,
@@ -60,7 +60,7 @@ export async function signupUser(signupData: SignupData): Promise<ApiResponse<{ 
       createdAt: new Date(),
       updatedAt: new Date(),
     }
-    
+
     return {
       success: true,
       data: {
@@ -72,6 +72,60 @@ export async function signupUser(signupData: SignupData): Promise<ApiResponse<{ 
     return {
       success: false,
       error: "회원가입 중 오류가 발생했습니다."
+    }
+  }
+}
+
+// 일반 회원가입 API 호출 (1단계: 기본 정보)
+export async function registerUser(registerData: RegisterRequest): Promise<RegisterResponse> {
+  try {
+    const response = await apiClient.post<RegisterResponse>("/api/auth/register", registerData)
+    return response.data
+  } catch (error: any) {
+    // axios 에러 처리
+    if (error.response?.data) {
+      return error.response.data as RegisterResponse
+    }
+    return {
+      code: "E001",
+      message: "회원가입 중 오류가 발생했습니다.",
+      success: false,
+      data: {
+        accessToken: "",
+        refreshToken: "",
+        userStatus: "PENDING",
+        loginStatus: "NEW_USER",
+        userName: "",
+      },
+    }
+  }
+}
+
+// 추가 정보 등록 API 호출 (2단계: 프로필 정보)
+export async function completeRegistration(
+  profileData: CompleteRegistrationRequest,
+  accessToken: string
+): Promise<CompleteRegistrationResponse> {
+  try {
+    const response = await apiClient.post<CompleteRegistrationResponse>(
+      "/api/auth/complete-registration",
+      profileData,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
+    return response.data
+  } catch (error: any) {
+    // axios 에러 처리
+    if (error.response?.data) {
+      return error.response.data as CompleteRegistrationResponse
+    }
+    return {
+      code: "E001",
+      message: "추가 정보 등록 중 오류가 발생했습니다.",
+      success: false,
     }
   }
 }
