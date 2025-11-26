@@ -200,6 +200,7 @@ export default function SignupPage() {
 
             {/* 카카오 회원가입 */}
             <Button
+              type="button"
               onClick={handleKakaoSignup}
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium py-3 rounded-lg transition-colors"
             >
@@ -507,7 +508,16 @@ export default function SignupPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={currentStep === totalSteps ? handleSubmit : (e) => e.preventDefault()}>
+            <form
+              onSubmit={
+                currentStep === totalSteps
+                  ? handleSubmit
+                  : async (e) => {
+                      e.preventDefault()
+                      await handleNextStep()
+                    }
+              }
+            >
               {renderStepContent()}
 
               {error && (
