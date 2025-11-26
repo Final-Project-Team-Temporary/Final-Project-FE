@@ -110,7 +110,7 @@ export interface UpdateKeywordsRequest {
 }
 
 export interface DeleteKeywordRequest {
-  keyword: string
+  userKeywordIds: number[]
 }
 
 // 필터 관련 타입

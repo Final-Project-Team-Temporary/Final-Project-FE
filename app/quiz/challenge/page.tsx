@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import Header from "@/components/layout/Header"
-import { ArrowLeft, Trophy, Clock, Users, Calendar, Loader2, Medal } from "lucide-react"
+import { ArrowLeft, Trophy, Clock, Users, Calendar, Loader2, Medal, Star, Award } from "lucide-react"
 import { fetchWeeklyChallenge } from "@/services/quiz"
 import { useToast } from "@/hooks/use-toast"
-import { WeeklyChallengeResponse } from "@/lib/types"
+import { WeeklyChallengeResponse, ChallengeAttempt } from "@/lib/types"
 
 export default function WeeklyChallengePage() {
   const router = useRouter()
@@ -17,10 +24,13 @@ export default function WeeklyChallengePage() {
 
   const [challengeData, setChallengeData] = useState<WeeklyChallengeResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [challengeResult, setChallengeResult] = useState<ChallengeAttempt | null>(null)
 
   // 주간 챌린지 데이터 불러오기
   useEffect(() => {
     loadChallengeData()
+    checkChallengeResult()
   }, [])
 
   const loadChallengeData = async () => {
@@ -37,6 +47,21 @@ export default function WeeklyChallengePage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // 챌린지 결과 확인
+  const checkChallengeResult = () => {
+    const resultStr = sessionStorage.getItem("challengeResult")
+    if (resultStr) {
+      try {
+        const result = JSON.parse(resultStr) as ChallengeAttempt
+        setChallengeResult(result)
+        setShowResultModal(true)
+        sessionStorage.removeItem("challengeResult")
+      } catch (error) {
+        console.error("Failed to parse challenge result:", error)
+      }
     }
   }
 
@@ -301,6 +326,88 @@ export default function WeeklyChallengePage() {
           )}
         </div>
       </main>
+
+      {/* 챌린지 결과 모달 */}
+      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold flex items-center justify-center gap-2">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              챌린지 완료!
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              이번 주 챌린지에 참여해주셔서 감사합니다
+            </DialogDescription>
+          </DialogHeader>
+
+          {challengeResult && (
+            <div className="space-y-4">
+              {/* 점수 */}
+              <div className="text-center py-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+                <div className="text-5xl font-bold text-blue-600 mb-2">
+                  {challengeResult.score}/{challengeResult.totalQuestions}
+                </div>
+                <div className="text-gray-600">획득 점수</div>
+              </div>
+
+              {/* 통계 */}
+              <div className="grid grid-cols-3 gap-3">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <Star className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
+                    <div className="text-xl font-bold text-gray-900">
+                      {challengeResult.accuracy.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-gray-600">정확도</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <Clock className="w-6 h-6 mx-auto mb-2 text-blue-500" />
+                    <div className="text-xl font-bold text-gray-900">
+                      {Math.floor(challengeResult.timeSpent / 60)}:{String(challengeResult.timeSpent % 60).padStart(2, "0")}
+                    </div>
+                    <div className="text-xs text-gray-600">소요 시간</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <Award className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+                    <div className="text-xl font-bold text-gray-900">{challengeResult.rank}위</div>
+                    <div className="text-xs text-gray-600">순위</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 순위 메시지 */}
+              <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <Medal className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-yellow-900">
+                  {challengeResult.rank <= 3
+                    ? `🎉 TOP 3 달성! 축하합니다!`
+                    : challengeResult.rank <= 10
+                      ? `👏 TOP 10 진입! 대단합니다!`
+                      : `💪 계속 도전해서 더 높은 순위를 달성해보세요!`}
+                </p>
+              </div>
+
+              {/* 닫기 버튼 */}
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => {
+                  setShowResultModal(false)
+                  loadChallengeData()
+                }}
+              >
+                확인
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

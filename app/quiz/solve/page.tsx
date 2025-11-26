@@ -87,7 +87,7 @@ export default function QuizSolvePage() {
     const timeSpent = Math.floor((Date.now() - startTime) / 1000)
 
     try {
-      await submitChallenge({
+      const result = await submitChallenge({
         challengeId,
         score,
         totalQuestions: quizData?.quizzes.length || 0,
@@ -95,11 +95,21 @@ export default function QuizSolvePage() {
         answers,
       })
 
+      // 챌린지 결과를 sessionStorage에 저장
+      sessionStorage.setItem("challengeResult", JSON.stringify(result))
+
       sessionStorage.removeItem("currentQuiz")
       sessionStorage.removeItem("challengeId")
       sessionStorage.removeItem("challengeStartTime")
       sessionStorage.removeItem("challengeTimeLimit")
+      sessionStorage.removeItem("quizType")
 
+      toast({
+        title: "챌린지 제출 완료",
+        description: `점수: ${result.score}/${result.totalQuestions} | 정확도: ${result.accuracy.toFixed(1)}% | 순위: ${result.rank}위`,
+      })
+
+      // 챌린지 페이지로 이동
       router.push("/quiz/challenge")
     } catch (error) {
       console.error("Failed to submit challenge:", error)
@@ -133,9 +143,16 @@ export default function QuizSolvePage() {
   }
 
   // 다음 문제
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isLastQuestion) {
-      // 결과 저장 후 결과 페이지로 이동
+      // 챌린지인 경우
+      if (isChallenge) {
+        const allAnswers = [...userAnswers, selectedAnswer!]
+        await handleChallengeSubmit(allAnswers)
+        return
+      }
+
+      // 일반 퀴즈인 경우 - 결과 저장 후 결과 페이지로 이동
       const resultData = {
         score,
         totalQuestions: quizData.quizzes.length,

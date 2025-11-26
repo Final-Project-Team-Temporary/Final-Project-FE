@@ -2,6 +2,7 @@ import apiClient from "@/lib/axios"
 import {
   AddKeywordRequest,
   UpdateKeywordsRequest,
+  DeleteKeywordRequest,
   UserKeywordsResponse,
   UserKeyword,
   ApiResponse,
@@ -68,14 +69,15 @@ export const addKeyword = async (keywords: string[]): Promise<boolean> => {
 
 /**
  * 키워드 삭제
- * @param keyword - 삭제할 키워드
+ * @param keywordIds - 삭제할 키워드 ID 배열
  * @returns 성공 여부
  */
-export const deleteKeyword = async (keyword: string): Promise<boolean> => {
+export const deleteKeyword = async (userKeywordIds: number[]): Promise<boolean> => {
   try {
-    const { data } = await apiClient.delete<ApiResponse<null>>(
-      `/api/users/keywords/${encodeURIComponent(keyword)}`
-    )
+    const requestBody: DeleteKeywordRequest = { userKeywordIds }
+    const { data } = await apiClient.delete<ApiResponse<null>>("/api/users/keywords", {
+      data: requestBody,
+    })
 
     return data.success
   } catch (error) {

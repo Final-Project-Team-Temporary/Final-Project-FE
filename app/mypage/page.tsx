@@ -29,9 +29,10 @@ import {
 import {
   addKeyword,
   deleteKeyword,
-  fetchUserKeywords,
+  fetchUserKeywordsWithId,
   fetchSuggestedKeywords,
 } from "@/services/keywords"
+import { UserKeyword } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import apiClient from "@/lib/axios"
 
@@ -43,7 +44,7 @@ interface UserProfile {
   investmentExperience: string
   riskTolerance: string
   investmentGoals: string[]
-  interests: string[]
+  interests: UserKeyword[]
 }
 
 export default function MyPage() {
@@ -54,7 +55,7 @@ export default function MyPage() {
   const [isMounted, setIsMounted] = useState(false)
 
   // 모의 사용자 데이터
-  const [userProfile, setUserProfile] = useState({
+  const [userProfile, setUserProfile] = useState<UserProfile>({
     name: "김투자",
     email: "kimtuza@example.com",
     phone: "010-1234-5678",
@@ -62,7 +63,7 @@ export default function MyPage() {
     investmentExperience: "중급자 (1-3년)",
     riskTolerance: "중립형 (적당한 위험 감수)",
     investmentGoals: ["장기 자산 증식", "은퇴 자금 마련"],
-    interests: ["ETF", "주식", "부동산"],
+    interests: [],
   })
 
   // 키워드 관리 상태
@@ -117,7 +118,7 @@ export default function MyPage() {
   const loadUserKeywords = async () => {
     setIsLoadingKeywords(true)
     try {
-      const keywords = await fetchUserKeywords()
+      const keywords = await fetchUserKeywordsWithId()
       setUserProfile((prev) => ({
         ...prev,
         interests: keywords,
@@ -155,7 +156,7 @@ export default function MyPage() {
       return
     }
 
-    if (userProfile.interests.includes(newKeyword.trim())) {
+    if (userProfile.interests.some((k) => k.keywordName === newKeyword.trim())) {
       toast({
         title: "중복 키워드",
         description: "이미 추가된 키워드입니다.",
@@ -199,16 +200,16 @@ export default function MyPage() {
   }
 
   // 키워드 삭제
-  const handleDeleteKeyword = async (keyword: string) => {
+  const handleDeleteKeyword = async (keywordId: number, keywordName: string) => {
     setIsLoadingKeywords(true)
     try {
-      const success = await deleteKeyword(keyword)
+      const success = await deleteKeyword([keywordId])
       if (success) {
         // 백엔드에서 최신 키워드 목록 다시 불러오기
         await loadUserKeywords()
         toast({
           title: "키워드 삭제 완료",
-          description: `"${keyword}" 키워드가 삭제되었습니다.`,
+          description: `"${keywordName}" 키워드가 삭제되었습니다.`,
         })
       } else {
         throw new Error("키워드 삭제 실패")
@@ -226,7 +227,7 @@ export default function MyPage() {
 
   // 추천 키워드에서 키워드 추가
   const handleAddSuggestedKeyword = async (keyword: string) => {
-    if (userProfile.interests.includes(keyword)) {
+    if (userProfile.interests.some((k) => k.keywordName === keyword)) {
       toast({
         title: "중복 키워드",
         description: "이미 추가된 키워드입니다.",
@@ -507,17 +508,19 @@ export default function MyPage() {
                             등록된 키워드가 없습니다. 관심 있는 키워드를 추가해보세요.
                           </span>
                         ) : (
-                          userProfile.interests.map((interest, index) => (
+                          userProfile.interests.map((interest) => (
                             <div
-                              key={index}
+                              key={interest.userKeywordId}
                               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full text-sm font-medium text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow group"
                             >
-                              <span>{interest}</span>
+                              <span>{interest.keywordName}</span>
                               <button
-                                onClick={() => handleDeleteKeyword(interest)}
+                                onClick={() =>
+                                  handleDeleteKeyword(interest.userKeywordId, interest.keywordName)
+                                }
                                 className="flex items-center justify-center w-5 h-5 rounded-full hover:bg-red-100 transition-colors duration-200 group-hover:scale-110"
                                 disabled={isLoadingKeywords}
-                                aria-label={`${interest} 삭제`}
+                                aria-label={`${interest.keywordName} 삭제`}
                               >
                                 <X className="w-3.5 h-3.5 text-blue-400 hover:text-red-500 transition-colors" />
                               </button>
@@ -535,7 +538,10 @@ export default function MyPage() {
                       </Label>
                       <div className="flex flex-wrap gap-2.5">
                         {suggestedKeywords
-                          .filter((keyword) => !userProfile.interests.includes(keyword))
+                          .filter(
+                            (keyword) =>
+                              !userProfile.interests.some((k) => k.keywordName === keyword)
+                          )
                           .map((keyword, index) => (
                             <button
                               key={index}

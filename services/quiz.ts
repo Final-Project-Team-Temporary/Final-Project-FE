@@ -175,47 +175,53 @@ export const createSmartQuiz = async (request: SmartQuizRequest): Promise<QuizDa
 export const fetchWeeklyChallenge = async (): Promise<WeeklyChallengeResponse> => {
   try {
     const { data } = await apiClient.get<{
-      challenge: {
-        id: number
-        weekStartDate: string
-        weekEndDate: string
-        totalQuestions: number
-        timeLimit: number
-        terms: string
-        isActive: boolean
-      }
-      myAttempt: {
-        score: number
-        totalQuestions: number
-        timeSpent: number
-        accuracy: number
-        rank: number
-        attemptedAt: string
-      } | null
-      quizzes: Array<{
-        question: string
-        options: string[]
-        explanation?: string
-        answerIndex: number
-        term?: string
-      }> | null
-      ranking: Array<{
-        rank: number
-        userId: number
-        username: string
-        score: number
-        totalQuestions: number
-        timeSpent: number
-        accuracy: number
-      }>
-      stats: {
-        totalParticipants: number
-        averageScore: number
+      code: string
+      message: string
+      success: boolean
+      data: {
+        challenge: {
+          id: number
+          weekStartDate: string
+          weekEndDate: string
+          totalQuestions: number
+          timeLimit: number
+          terms: string
+          isActive: boolean
+        }
+        myAttempt: {
+          score: number
+          totalQuestions: number
+          timeSpent: number
+          accuracy: number
+          rank: number
+          attemptedAt: string
+        } | null
+        quizzes: Array<{
+          question: string
+          options: string[]
+          explanation?: string
+          answerIndex: number
+          term?: string
+        }> | null
+        ranking: Array<{
+          rank: number
+          userId: number
+          username: string
+          score: number
+          totalQuestions: number
+          timeSpent: number
+          accuracy: number
+        }>
+        stats: {
+          totalParticipants: number
+          averageScore: number
+        }
       }
     }>("/api/quiz/weekly-challenge")
 
-    const quizzes = data.quizzes
-      ? data.quizzes.map((q) => ({
+    const responseData = data.data
+    const quizzes = responseData.quizzes
+      ? responseData.quizzes.map((q) => ({
           question: q.question,
           options: q.options,
           explanation: q.explanation,
@@ -225,11 +231,11 @@ export const fetchWeeklyChallenge = async (): Promise<WeeklyChallengeResponse> =
       : null
 
     return {
-      challenge: data.challenge,
-      myAttempt: data.myAttempt,
+      challenge: responseData.challenge,
+      myAttempt: responseData.myAttempt,
       quizzes,
-      ranking: data.ranking,
-      stats: data.stats,
+      ranking: responseData.ranking,
+      stats: responseData.stats,
     }
   } catch (error) {
     console.error("Error fetching weekly challenge:", error)
@@ -246,11 +252,21 @@ export const submitChallenge = async (
   request: ChallengeSubmitRequest
 ): Promise<ChallengeAttempt> => {
   try {
-    const { data } = await apiClient.post<ChallengeAttempt>(
-      "/api/quiz/weekly-challenge/submit",
-      request
-    )
-    return data
+    const { data } = await apiClient.post<{
+      code: string
+      message: string
+      success: boolean
+      data: {
+        score: number
+        totalQuestions: number
+        timeSpent: number
+        accuracy: number
+        rank: number
+        attemptedAt: string
+      }
+    }>("/api/quiz/weekly-challenge/submit", request)
+
+    return data.data
   } catch (error) {
     console.error("Error submitting challenge:", error)
     throw error
