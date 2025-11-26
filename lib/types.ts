@@ -298,3 +298,16 @@ export interface LearningStats {
   lastStudied: string
   streak: number
 }
+
+// 최근 읽은 기사 관련 타입
+export interface RecentlyViewedArticle {
+  id: string
+  title: string
+}
+
+export interface RecentlyViewedArticlesResponse {
+  code: string
+  message: string
+  success: boolean
+  data: RecentlyViewedArticle[]
+}
